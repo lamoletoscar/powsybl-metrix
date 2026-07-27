@@ -56,6 +56,23 @@ using std::setw;
 using std::string;
 using std::vector;
 
+namespace
+{
+/**
+ * @brief Indique si les traces de mesure des solveurs doivent etre produites
+ *
+ * Ces traces impliquent un parcours des variables et une mesure de temps. De plus, meme
+ * lorsque le niveau est filtre, LOG() construit une std::string a partir de __FILE__ et
+ * prend le mutex du logger a chaque element streame (cf. Logger::log, qui ne teste le
+ * niveau qu'apres avoir verrouille). On conditionne donc tout le bloc de trace au niveau
+ * de log effectif de la run plutot que de compter sur le filtrage interne du logger.
+ */
+bool solverTracesEnabled()
+{
+    return metrix::log::Logger::config.loggerLevel <= metrix::log::severity::debug;
+}
+} // namespace
+
 void Contrainte::init(const std::shared_ptr<ElementASurveiller>& qdt,
                       const std::shared_ptr<Incident>& icdt,
                       double T_N,
@@ -419,16 +436,20 @@ int Calculer::resolutionProbleme()
 
 int Calculer::resoudrePNE(const std::shared_ptr<Variante>& varianteCourante)
 {
-    // Comptage des variables entières actives
+    const bool traceSolveur = solverTracesEnabled();
+
+    // Comptage des variables entières actives (uniquement pour la trace)
     int nbVarEntieresActives = 0;
-    for (int i = 0; i < pbNombreDeVariables_; ++i) {
-        if (pbTypeDeVariable_[i] == ENTIER && pbTypeDeBorneDeLaVariable_[i] != VARIABLE_FIXE) {
-            nbVarEntieresActives++;
+    if (traceSolveur) {
+        for (int i = 0; i < pbNombreDeVariables_; ++i) {
+            if (pbTypeDeVariable_[i] == ENTIER && pbTypeDeBorneDeLaVariable_[i] != VARIABLE_FIXE) {
+                nbVarEntieresActives++;
+            }
         }
+        LOG(debug) << "MIP stats: variante " << varianteCourante->num_ << ", micro-iteration " << numMicroIteration_
+                   << ", nb variables = " << pbNombreDeVariables_ << ", nb contraintes = " << pbNombreDeContraintes_
+                   << ", nb variables entieres actives = " << nbVarEntieresActives;
     }
-    LOG(debug) << "MIP stats: variante " << varianteCourante->num_ << ", micro-iteration " << numMicroIteration_
-               << ", nb variables = " << pbNombreDeVariables_ << ", nb contraintes = " << pbNombreDeContraintes_
-               << ", nb variables entieres actives = " << nbVarEntieresActives;
     LOG_ALL(info) << err::ioDico().msg("INFOAppelSolvLineairePNE");
 
     pbCoutsMarginauxDesContraintes_.resize(pbNombreDeContraintes_);
@@ -464,13 +485,18 @@ int Calculer::resoudrePNE(const std::shared_ptr<Variante>& varianteCourante)
 
     // Resolution du probleme
     //----------------------
-    auto startTime = std::chrono::high_resolution_clock::now();
+    std::chrono::high_resolution_clock::time_point startTime;
+    if (traceSolveur) {
+        startTime = std::chrono::high_resolution_clock::now();
+    }
     solver_pne_->solve(&pbPNE_);
-    auto endTime = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-    LOG(debug) << "MIP solve time: variante " << varianteCourante->num_ << ", micro-iteration " << numMicroIteration_
-               << ", " << duration.count() << " ms"
-               << " (nb var entieres actives = " << nbVarEntieresActives << ")";
+    if (traceSolveur) {
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::high_resolution_clock::now() - startTime);
+        LOG(debug) << "MIP solve time: variante " << varianteCourante->num_ << ", micro-iteration "
+                   << numMicroIteration_ << ", " << duration.count() << " us"
+                   << " (nb var entieres actives = " << nbVarEntieresActives << ")";
+    }
     pbExistenceDUneSolution_ = pbPNE_.ExistenceDUneSolution;
 
     if (pbExistenceDUneSolution_ == SOLUTION_OPTIMALE_TROUVEE
@@ -559,10 +585,24 @@ int Calculer::resoudreSimplexe(TypeDeSolveur typeSolveur, const std::shared_ptr<
         SPX_EcrireProblemeAuFormatMPS(pb_);
     }
 
+    const bool traceSolveur = solverTracesEnabled();
+    std::chrono::high_resolution_clock::time_point startTime;
+    if (traceSolveur) {
+        startTime = std::chrono::high_resolution_clock::now();
+    }
     if (typeSolveur == UTILISATION_PC_SIMPLEXE) {
         pc_solver_->solve(&pb_);
     } else {
         solver_pne_->solve(&pb_);
+    }
+    if (traceSolveur) {
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::high_resolution_clock::now() - startTime);
+        LOG(debug) << "LP solve time: variante " << varianteCourante->num_ << ", micro-iteration "
+                   << numMicroIteration_ << ", phase "
+                   << (typeSolveur == UTILISATION_PC_SIMPLEXE ? "empilement" : "reseau")
+                   << ", nb variables = " << pbNombreDeVariables_ << ", nb contraintes = " << pbNombreDeContraintes_
+                   << ", " << duration.count() << " us";
     }
     pbNbVarDeBaseComplementaires_ = pb_.NbVarDeBaseComplementaires;
     pbExistenceDUneSolution_ = pb_.ExistenceDUneSolution;
