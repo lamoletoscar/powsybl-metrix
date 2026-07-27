@@ -90,18 +90,13 @@ private:
         auto problemType = type<PROBLEM>();
         checkSolverAvailability(problemType);
         auto solver = std::make_shared<operations_research::MPSolver>(solverName_, problemType);
-        if (!specific_params_.empty() && !solver->SetSolverSpecificParametersAsString(specific_params_)) {
-            static bool warned = false; // avoid repeating the warning on every (micro-iteration) solve
-            if (!warned) {
-                LOG_ALL(warning) << "SPECIFICSOLVERPARAMS rejected by the solver backend: '" << specific_params_
-                                 << "'";
-                warned = true;
-            }
-        }
+        applySpecificParams(*solver);
         return solver;
     }
 
     void checkSolverAvailability(operations_research::MPSolver::OptimizationProblemType problemType) const;
+
+    void applySpecificParams(operations_research::MPSolver& solver) const;
 
     std::shared_ptr<operations_research::MPSolver> toMPSolver(const PROBLEME_A_RESOUDRE& problem);
     std::shared_ptr<operations_research::MPSolver> toMPSolver(const PROBLEME_SIMPLEXE& problem);

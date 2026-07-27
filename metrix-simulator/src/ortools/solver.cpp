@@ -54,6 +54,19 @@ void Solver::checkSolverAvailability(operations_research::MPSolver::Optimization
     }
 }
 
+void Solver::applySpecificParams(operations_research::MPSolver& solver) const
+{
+    if (specific_params_.empty()) {
+        return;
+    }
+    // OR-Tools applique les paires une par une et s'arrete a la premiere cle inconnue :
+    // un rejet laisse donc le backend partiellement configure, sans moyen de savoir
+    // jusqu'ou. On echoue plutot que de poursuivre sur une configuration incertaine.
+    if (!solver.SetSolverSpecificParametersAsString(specific_params_)) {
+        throw ErrorI(err::ioDico().msg("ERRParamSolveurRefuse", specific_params_));
+    }
+}
+
 void Solver::solve(PROBLEME_A_RESOUDRE* problem)
 {
     solver_ = toMPSolver(*problem);
@@ -73,7 +86,10 @@ void Solver::solve(PROBLEME_A_RESOUDRE* problem)
         updateProblem(*problem, solver_);
     } else if (status == operations_research::MPSolver::ResultStatus::INFEASIBLE) {
         problem->ExistenceDUneSolution = PROBLEME_INFAISABLE;
+    } else if (status == operations_research::MPSolver::ResultStatus::UNBOUNDED) {
+        problem->ExistenceDUneSolution = PROBLEME_NON_BORNE;
     } else {
+        // ABNORMAL / MODEL_INVALID / NOT_SOLVED
         problem->ExistenceDUneSolution = PAS_DE_SOLUTION_TROUVEE;
     }
 }
