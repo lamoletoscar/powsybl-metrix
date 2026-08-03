@@ -2674,6 +2674,12 @@ void Reseau::updateBase(const config::VariantConfiguration::VariantConfig& confi
             if (!td->tapdepha_.empty() && (var_int >= td->lowtap_) && (var_int < td->lowtap_ + td->nbtap_)) {
                 td->puiConsBase_ = td->angle2Power(td->tapdepha_[var_int - td->lowtap_]);
                 td->puiCons_ = td->puiConsBase_;
+                if (td->type_ == TransformateurDephaseur::PILOTAGE_ANGLE_IMPOSE
+                    || td->type_ == TransformateurDephaseur::PILOTAGE_PUISSANCE_IMPOSE) {
+                    // Le dephasage impose devient la nouvelle borne, cf. constructeur de TransformateurDephaseur
+                    td->puiMin_ = td->puiCons_;
+                    td->puiMax_ = td->puiCons_;
+                }
             } else {
                 LOG_ALL(warning) << err::ioDico().msg(
                     "ERRTDPriseIntrouvable", str, c_fmt("%d", var_int), c_fmt("%d", config.num));
