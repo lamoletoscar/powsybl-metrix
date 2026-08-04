@@ -835,7 +835,49 @@ int Calculer::metrix2Assess(const std::shared_ptr<Variante>& var, const vector<d
                 continue;
             }
 
-            if (elemSurv->quadsASurv_.size() == 1 && elemSurv->hvdcASurv_.empty()) {
+            if (elemSurv->isWatchedSection) {
+                // Somme ponderee identique a celle de Calculer::detectionContraintes
+                transitN = 0.;
+                for (const auto& elem : elemSurv->quadsASurv_) {
+                    const auto& quadSect = elem.first;
+                    if (quadSect->connecte()) {
+                        transitN += elem.second * quadSect->u2Yij_
+                                    * (theta[quadSect->norqua_->num_] - theta[quadSect->nexqua_->num_]);
+                    }
+                }
+                for (const auto& elem : elemSurv->hvdcASurv_) {
+                    const auto& lccSect = elem.first;
+                    if (lccSect->connecte()) {
+                        transitN += elem.second
+                                    * (lccSect->puiCons_ + pbX_[lccSect->numVar_] - pbX_[lccSect->numVar_ + 1]);
+                    }
+                }
+
+                // Le seuil d'une section ne s'applique que dans le sens porte par ses coefficients
+                double ecartSect = 0.;
+                if (transitN > 0 && elemSurv->seuilMaxN_ != config::constants::valdef) {
+                    ecartSect = std::max(transitN - elemSurv->seuilMaxN_, 0.);
+                    sommeEcartsN += ecartSect;
+                }
+
+                if (!config::inputConfiguration().useAllOutputs()) {
+                    if (config::configuration().displayResultatsSurcharges() && ecartSect < EPSILON_SORTIES) {
+                        continue;
+                    }
+                    if (fabs(transitN) < EPSILON_SORTIES) {
+                        transitN = 0.0;
+                    }
+                    fprintf(fr, ("R3 ;;%s;" + PREC_FLOAT + ";\n").c_str(), elemSurv->nom_.c_str(), transitN);
+                } else {
+                    fprintf(fr,
+                            "R3 ;;%s;%.1f;%.1f;%.1f;%.1f;\n",
+                            elemSurv->nom_.c_str(),
+                            transitN,
+                            elemSurv->seuilMaxN_,
+                            elemSurv->seuilMaxInc_,
+                            elemSurv->seuilMaxAvantCur_);
+                }
+            } else if (elemSurv->quadsASurv_.size() == 1 && elemSurv->hvdcASurv_.empty()) {
                 const auto& quad = elemSurv->quadsASurv_.begin()->first;
 
                 if (quad->typeQuadripole_ != Quadripole::QUADRIPOLE_REEL) {
