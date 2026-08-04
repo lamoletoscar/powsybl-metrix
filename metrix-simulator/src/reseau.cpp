@@ -722,7 +722,16 @@ void Reseau::lireDonnees()
 
         cptTableDescr += config.sectnbqdDIE()[i];
         elementsASurveiller_.push_back(elemAS);
-        elementsASurveillerN_.insert(std::pair<string, std::shared_ptr<ElementASurveiller>>(elemAS->nom_, elemAS));
+
+        // Une section absente de elementsASurveillerN_ ne serait jamais detectee ni contrainte
+        auto insertion = elementsASurveillerN_.insert(
+            std::pair<string, std::shared_ptr<ElementASurveiller>>(elemAS->nom_, elemAS));
+        if (!insertion.second) {
+            ostringstream errMsg;
+            errMsg << err::ioDico().msg("ERRNomSectionSurvDuplique", elemAS->nom_);
+            throw ErrorI(errMsg.str());
+        }
+
         nbQuadSurvN_++;
     }
 
