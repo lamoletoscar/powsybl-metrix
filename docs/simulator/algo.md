@@ -1333,22 +1333,26 @@ Cette heuristique ne s'exécute que si le nombre de contraintes détectées dép
 Lorsqu'elle s'exécute, le nombre de contraintes effectivement écrites dans le problème pour cette micro-itération
 est en outre plafonné à `nb_max_contraints_by_iteration` ; sinon, toutes les contraintes détectées sont écrites.
 
-L'intention est d'éliminer les contraintes quasi-redondantes portant sur le même élément surveillé. Les contraintes
-d'un même élément sont parcourues dans l'ordre du tri, et une contrainte de rang inférieur est éclipsée
-(`ecrireContrainte_ = false`) si l'une des deux conditions suivantes est vraie :
+Deux filtrages distincts sont combinés. Les contraintes d'un même élément surveillé sont parcourues dans l'ordre du
+tri, et une contrainte de rang inférieur est éclipsée (`ecrireContrainte_ = false`) si l'une des deux conditions
+suivantes est vraie.
 
-- **(a)** elle n'est pas du même type que la contrainte prioritaire ;
-- **(b)** les deux sont du même type, l'incident n'est pas la situation N, il n'a pas d'éléments curatifs, et les
-  transits sont à moins de 1 % d'écart avec des seuils distants de moins de 1 MW.
+**(a) Priorité de type.** Elle n'est pas du même type que la contrainte prioritaire. Le tri plaçant les contraintes
+N avant les N-k, cela revient, sur un élément en contrainte à la fois en N et sur incident, à ne conserver que la
+contrainte N : on parie que corriger la situation N suffira à résorber la surcharge post-incident. Le pari est
+fondé, car le transit post-incident se déduit du transit en N amplifié par le report — agir sur le transit en N
+agit donc sur le transit N-k avec un levier plus important. Il reste un pari : si la contrainte N-k subsiste, elle
+sera simplement redétectée à la micro-itération suivante, `ecrireContrainte_` étant remis à `true` à chaque
+détection.
 
-```{warning}
-La condition **(a)** est un simple test d'inégalité de type, sans aucune vérification de similarité des transits.
-Compte tenu de l'ordre de l'énumération des types (émulation AC, puis N, puis N-k), elle a pour effet d'éclipser
-systématiquement toute contrainte de type différent portant sur le même élément surveillé, quelle que soit
-l'ampleur de la surcharge concernée : une contrainte d'émulation AC éclipse ainsi une contrainte N *et* une
-contrainte N-k. Ce comportement est décrit ici tel qu'il est implémenté ; il n'est pas établi qu'il soit
-intentionnel et fait l'objet d'une analyse en cours.
-```
+**(b) Quasi-redondance.** Les deux contraintes sont du même type, l'incident n'est pas la situation N, il n'a pas
+d'éléments curatifs, et les transits sont à moins de 1 % d'écart avec des seuils distants de moins de 1 MW. Cela
+couvre le cas d'un même ouvrage chargé de façon quasi identique par plusieurs incidents.
+
+Cette heuristique prolonge le filtre « masquée par N » de la détection, qui traite le cas certain — une surcharge
+N-k inférieure à la surcharge N sur le même élément. Ici le pari est étendu au cas incertain, mais uniquement sous
+pression de volume. Le résultat final n'en dépend pas, puisque la boucle ne s'arrête que lorsque plus aucune
+contrainte n'est détectée ; seul le nombre de micro-itérations nécessaires peut varier.
 
 ##### Contrainte fictive de poche
 
