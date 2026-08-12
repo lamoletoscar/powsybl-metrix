@@ -174,7 +174,7 @@ sur ce groupe original de lignes, nous faisons donc disparaître aussi les surch
 problème d'optimisation peut ainsi être simplifié en réduisant le nombre de contraintes** à prendre en compte, sans
 changer la validité de la simulation.
 
-Pour résoudre le problème d'optimisation, nous allons **procéder par micro-itérations* : à chaque micro-itération, nous
+Pour résoudre le problème d'optimisation, nous allons **procéder par micro-itérations** : à chaque micro-itération, nous
 résolvons le problème ; puis nous cherchons si, dans la solution trouvée, il y a des lignes en surcharge. Parmi ces
 lignes, nous allons rechercher quel sous-groupe de lignes engendre des surcharges ailleurs, et donc quel sous-groupe de
 lignes, il faut contraindre pour faire disparaître toutes les surcharges. Ces contraintes sont alors ajoutées au
@@ -190,485 +190,9 @@ apparaissent.
 Micro-iterations process
 ```
 
-Les sections suivantes fournissent une description fonctionnelle détaillée du fonctionnement de la boucle de
-micro-itération, des critères de sûreté vérifiés, des moyens d'action disponibles et des modes de calcul proposés.
-
-#### 1. Principe général
-
-METRIX recherche l'**ajustement de moindre coût** du plan de production afin qu'aucune limite thermique
-ne soit violée, ni sur le réseau intact (situation N), ni après une contingence crédible (situations N-k).
-
-Description d'une **micro-itération** :
-
-```{raw} html
-<div class="diagram-card">
-    <svg width="100%" viewBox="0 0 680 660" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-            <marker id="b1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </marker>
-        </defs>
-
-        <text class="th" x="340" y="28" text-anchor="middle">Optimisation itérative sous contraintes de sûreté</text>
-
-        <!-- Critères d'arrêt -->
-        <g class="fill-gray">
-            <rect x="190" y="50" width="300" height="44" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="72" text-anchor="middle" dominant-baseline="central">Critères d'arrêt</text>
-        </g>
-        <line x1="340" y1="94" x2="340" y2="122" class="arr" marker-end="url(#b1)"/>
-        <line x1="490" y1="72" x2="560" y2="72" class="arr" marker-end="url(#b1)" stroke="var(--diag-red)"/>
-        <text class="ts" x="610" y="68" text-anchor="middle" style="fill:var(--diag-red)">Max contraintes</text>
-        <text class="ts" x="610" y="84" text-anchor="middle" style="fill:var(--diag-red)">ou max itérations</text>
-
-        <!-- Optimiser -->
-        <g class="fill-purple">
-            <rect x="170" y="122" width="340" height="60" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="144" text-anchor="middle" dominant-baseline="central">Optimiser le plan de production</text>
-            <text class="ts" x="340" y="164" text-anchor="middle" dominant-baseline="central">Minimiser le coût de redispatching sous contraintes connues</text>
-        </g>
-        <line x1="340" y1="182" x2="340" y2="210" class="arr" marker-end="url(#b1)"/>
-
-        <!-- Calculer les flux -->
-        <g class="fill-teal">
-            <rect x="170" y="210" width="340" height="68" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="232" text-anchor="middle" dominant-baseline="central">Calculer les flux réseau</text>
-            <text class="ts" x="340" y="250" text-anchor="middle" dominant-baseline="central">Load-flow DC → transits de puissance active</text>
-            <text class="ts" x="340" y="264" text-anchor="middle" dominant-baseline="central">sur toutes les lignes</text>
-        </g>
-        <line x1="340" y1="278" x2="340" y2="306" class="arr" marker-end="url(#b1)"/>
-
-        <!-- Vérifier les critères de sûreté -->
-        <g class="fill-coral">
-            <rect x="170" y="306" width="340" height="80" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="330" text-anchor="middle" dominant-baseline="central">Vérifier les critères de sûreté</text>
-            <text class="ts" x="340" y="350" text-anchor="middle" dominant-baseline="central">Pour chaque élément surveillé :</text>
-            <text class="ts" x="340" y="366" text-anchor="middle" dominant-baseline="central">transit vs limite thermique en N, puis en N-k</text>
-        </g>
-        <line x1="340" y1="386" x2="340" y2="414" class="arr" marker-end="url(#b1)"/>
-
-        <!-- Violation détectée ? -->
-        <g class="fill-amber">
-            <rect x="190" y="414" width="300" height="44" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="436" text-anchor="middle" dominant-baseline="central">Violation détectée ?</text>
-        </g>
-
-        <!-- Branch Oui → Ajouter contraintes (gauche) -->
-        <path d="M290 458 L190 486" class="arr" fill="none" marker-end="url(#b1)"/>
-        <text class="ts" x="210" y="476" text-anchor="middle">Oui</text>
-
-        <!-- Branch Non → Dispatch sûr trouvé (droite) -->
-        <path d="M390 458 L490 486" class="arr" fill="none" marker-end="url(#b1)" stroke="var(--diag-green)"/>
-        <text class="ts" x="470" y="476" text-anchor="middle" style="fill:var(--diag-green)">Non</text>
-
-        <!-- Ajouter contraintes (gauche, bleu) -->
-        <g class="fill-blue">
-            <rect x="40" y="486" width="300" height="80" rx="8" stroke-width="0.5"/>
-            <text class="th" x="190" y="508" text-anchor="middle" dominant-baseline="central">Ajouter les contraintes violées</text>
-            <text class="ts" x="190" y="528" text-anchor="middle" dominant-baseline="central">Le cas échéant : actions curatives</text>
-            <text class="ts" x="190" y="544" text-anchor="middle" dominant-baseline="central">(topologie, redispatching curatif)</text>
-        </g>
-
-        <!-- Dispatch sûr trouvé (droite, teal) -->
-        <g class="fill-teal">
-            <rect x="340" y="486" width="300" height="80" rx="8" stroke-width="0.5"/>
-            <text class="th" x="490" y="508" text-anchor="middle" dominant-baseline="central">Dispatch sûr trouvé</text>
-            <text class="ts" x="490" y="528" text-anchor="middle" dominant-baseline="central">Convergence atteinte</text>
-            <text class="ts" x="490" y="544" text-anchor="middle" dominant-baseline="central">Résultats en sortie</text>
-        </g>
-
-        <!-- Boucle de retour : Ajouter contraintes → Critères d'arrêt -->
-        <path d="M190 566 L190 612 L20 612 L20 72 L190 72" fill="none" class="arr" stroke-width="1.5" marker-end="url(#b1)" stroke-dasharray="6 4"/>
-        <text class="ts" x="28" y="312" text-anchor="start">↑ Ré-optimiser</text>
-        <text class="ts" x="28" y="328" text-anchor="start">avec nouvelles</text>
-        <text class="ts" x="28" y="344" text-anchor="start">contraintes</text>
-    </svg>
-</div>
-```
-
----
-
-#### 2. Seuils thermiques et régimes de sûreté
-
-Chaque élément surveillé (ligne, transformateur ou section) se voit attribuer des **limites thermiques** qui dépendent du régime d'exploitation.
-Ces limites représentent le transit de puissance active maximal que l'élément peut supporter selon différents horizons temporels.
-
-```{raw} html
-<div class="diagram-card">
-    <svg width="100%" viewBox="0 0 680 330" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-            <marker id="b2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </marker>
-        </defs>
-
-        <text class="th" x="340" y="24" text-anchor="middle">Hiérarchie des limites thermiques pour un élément surveillé</text>
-
-        <!-- N -->
-        <g class="fill-teal">
-            <rect x="40" y="50" width="130" height="70" rx="8" stroke-width="0.5"/>
-            <text class="th" x="105" y="72" text-anchor="middle" dominant-baseline="central">Limite N</text>
-            <text class="ts" x="105" y="92" text-anchor="middle" dominant-baseline="central">Régime permanent</text>
-            <text class="ts" x="105" y="106" text-anchor="middle" dominant-baseline="central">(permanent)</text>
-        </g>
-        <line x1="170" y1="85" x2="198" y2="85" class="arr" marker-end="url(#b2)"/>
-
-        <!-- N-1 -->
-        <g class="fill-blue">
-            <rect x="198" y="50" width="130" height="70" rx="8" stroke-width="0.5"/>
-            <text class="th" x="263" y="72" text-anchor="middle" dominant-baseline="central">Limite N-1</text>
-            <text class="ts" x="263" y="92" text-anchor="middle" dominant-baseline="central">Post-contingence</text>
-            <text class="ts" x="263" y="106" text-anchor="middle" dominant-baseline="central">(simple)</text>
-        </g>
-        <line x1="328" y1="85" x2="356" y2="85" class="arr" marker-end="url(#b2)"/>
-
-        <!-- N-k -->
-        <g class="fill-purple">
-            <rect x="356" y="50" width="130" height="70" rx="8" stroke-width="0.5"/>
-            <text class="th" x="421" y="72" text-anchor="middle" dominant-baseline="central">Limite N-k</text>
-            <text class="ts" x="421" y="92" text-anchor="middle" dominant-baseline="central">Post-contingence</text>
-            <text class="ts" x="421" y="106" text-anchor="middle" dominant-baseline="central">(complexe)</text>
-        </g>
-        <line x1="486" y1="85" x2="514" y2="85" class="arr" marker-end="url(#b2)"/>
-
-        <!-- ITAM -->
-        <g class="fill-amber">
-            <rect x="514" y="50" width="130" height="70" rx="8" stroke-width="0.5"/>
-            <text class="th" x="579" y="72" text-anchor="middle" dominant-baseline="central">Limite ITAM</text>
-            <text class="ts" x="579" y="92" text-anchor="middle" dominant-baseline="central">Avant action</text>
-            <text class="ts" x="579" y="106" text-anchor="middle" dominant-baseline="central">curative</text>
-        </g>
-
-        <!-- Explanation boxes -->
-        <g class="fill-gray">
-            <rect x="40" y="200" width="290" height="56" rx="8" stroke-width="0.5"/>
-            <text class="th" x="185" y="220" text-anchor="middle" dominant-baseline="central">Limites symétriques</text>
-            <text class="ts" x="185" y="240" text-anchor="middle" dominant-baseline="central">Même limite quel que soit le sens du flux</text>
-        </g>
-
-        <g class="fill-gray">
-            <rect x="350" y="200" width="290" height="56" rx="8" stroke-width="0.5"/>
-            <text class="th" x="495" y="220" text-anchor="middle" dominant-baseline="central">Limites asymétriques</text>
-            <text class="ts" x="495" y="240" text-anchor="middle" dominant-baseline="central">Limites différentes selon le sens du flux</text>
-        </g>
-
-        <text class="ts" x="340" y="290" text-anchor="middle">Toutes les limites peuvent être redéfinies par variante, permettant des calibrages thermiques spécifiques au scénario.</text>
-    </svg>
-    <div class="legend">
-        La limite N s'applique en conditions normales d'exploitation (régime permanent). Les limites N-1 et N-k s'appliquent après une contingence et sont généralement plus élevées, reflétant la capacité thermique à court terme de l'élément. La limite ITAM (avant action curative) est la plus permissive : elle représente le transit que l'élément peut supporter pendant la période entre la contingence et l'exécution de l'action curative.
-    </div>
-</div>
-```
-
-Lors de la vérification de sûreté, METRIX sélectionne la limite appropriée en fonction
-du contexte : si aucune contingence n'est évaluée, la limite N s'applique. Si une contingence
-est évaluée et que des actions curatives sont disponibles, la limite ITAM peut être utilisée pour
-refléter la capacité de surcharge transitoire avant l'exécution de l'action curative.
-
----
-
-#### 3. Vérification de sûreté : scan en N et N-k
-
-À chaque micro-itération, après que l'optimiseur a produit un dispatch de production, METRIX vérifie
-qu'aucun élément surveillé ne dépasse sa limite thermique. Cette vérification est effectuée en deux étapes.
-
-```{raw} html
-<div class="diagram-card">
-    <svg width="100%" viewBox="0 0 680 580" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-            <marker id="b3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </marker>
-        </defs>
-
-        <text class="th" x="340" y="24" text-anchor="middle">Scan de sûreté en deux étapes</text>
-
-        <!-- Stage 1 -->
-        <rect class="dashed-zone" x="30" y="44" width="620" height="150" rx="16"/>
-        <text class="th" x="50" y="66">Étape 1 — Réseau intact (N)</text>
-
-        <g class="fill-teal">
-            <rect x="50" y="82" width="240" height="44" rx="8" stroke-width="0.5"/>
-            <text class="th" x="170" y="104" text-anchor="middle" dominant-baseline="central">Calculer le transit</text>
-        </g>
-        <line x1="290" y1="104" x2="318" y2="104" class="arr" marker-end="url(#b3)"/>
-        <g class="fill-teal">
-            <rect x="318" y="82" width="164" height="44" rx="8" stroke-width="0.5"/>
-            <text class="th" x="400" y="104" text-anchor="middle" dominant-baseline="central">Comparer à la limite N</text>
-        </g>
-        <line x1="482" y1="104" x2="510" y2="104" class="arr" marker-end="url(#b3)"/>
-        <g class="fill-coral">
-            <rect x="510" y="82" width="120" height="44" rx="8" stroke-width="0.5"/>
-            <text class="th" x="570" y="104" text-anchor="middle" dominant-baseline="central">Surcharge ?</text>
-        </g>
-
-        <text class="ts" x="50" y="152" text-anchor="start">Pour chaque élément surveillé, en utilisant le résultat du load-flow DC.</text>
-        <text class="ts" x="50" y="168" text-anchor="start">Une surcharge en N est enregistrée et masquera les surcharges N-k plus petites sur le même élément.</text>
-
-        <!-- Stage 2 -->
-        <rect class="dashed-zone" x="30" y="210" width="620" height="370" rx="16"/>
-        <text class="th" x="50" y="232">Étape 2 — Post-contingence (N-k)</text>
-
-        <g class="fill-blue">
-            <rect x="50" y="248" width="240" height="56" rx="8" stroke-width="0.5"/>
-            <text class="th" x="170" y="268" text-anchor="middle" dominant-baseline="central">Estimer le transit post-contingence</text>
-            <text class="ts" x="170" y="286" text-anchor="middle" dominant-baseline="central">(via facteurs de sensibilité)</text>
-        </g>
-        <line x1="290" y1="276" x2="330" y2="276" class="arr" marker-end="url(#b3)"/>
-        <g class="fill-blue">
-            <rect x="330" y="248" width="140" height="56" rx="8" stroke-width="0.5"/>
-            <text class="th" x="400" y="268" text-anchor="middle" dominant-baseline="central">Comparer à la limite</text>
-            <text class="ts" x="400" y="286" text-anchor="middle" dominant-baseline="central">N-1 / N-k / ITAM</text>
-        </g>
-        <line x1="470" y1="276" x2="510" y2="276" class="arr" marker-end="url(#b3)"/>
-        <g class="fill-coral">
-            <rect x="510" y="248" width="120" height="56" rx="8" stroke-width="0.5"/>
-            <text class="th" x="570" y="268" text-anchor="middle" dominant-baseline="central">Surcharge ?</text>
-            <text class="ts" x="570" y="286" text-anchor="middle" dominant-baseline="central">Appliquer les filtres</text>
-        </g>
-
-        <text class="ts" x="50" y="332" text-anchor="start">Pour chaque contingence × chaque élément surveillé. Les transits post-contingence sont estimés</text>
-        <text class="ts" x="50" y="348" text-anchor="start">via les facteurs de sensibilité (PTDF/LODF), évitant un load-flow complet par contingence.</text>
-
-        <text class="th" x="50" y="386">Règles de filtrage (une surcharge est écartée si) :</text>
-        <text class="ts" x="50" y="406" text-anchor="start">• L'incident a déjà ses parades activées</text>
-        <text class="ts" x="58" y="420" text-anchor="start">(sans ITAM : ignoré ; avec ITAM : détection sur seuil avant-curatif)</text>
-        <text class="ts" x="50" y="440" text-anchor="start">• La contrainte a déjà été ajoutée dans une micro-itération précédente</text>
-        <text class="ts" x="58" y="454" text-anchor="start">(modes avec variables d'écart uniquement)</text>
-        <text class="ts" x="50" y="474" text-anchor="start">• Aucun levier d'action n'est mobilisable</text>
-        <text class="ts" x="58" y="488" text-anchor="start">(modes avec variables d'écart uniquement)</text>
-        <text class="ts" x="50" y="508" text-anchor="start">• La surcharge est inférieure à la tolérance numérique</text>
-        <text class="ts" x="50" y="528" text-anchor="start">• La surcharge est plus petite que la surcharge N sur le même élément</text>
-
-        <text class="ts" x="50" y="556" text-anchor="start">Les menaces les plus sévères par élément sont enregistrées pour les résultats.</text>
-    </svg>
-    <div class="legend">
-        Les transits post-contingence ne sont pas calculés en exécutant un load-flow complet par contingence. METRIX utilise des facteurs de sensibilité linéaires (PTDF et LODF) pré-calculés à partir de la Jacobienne du réseau. Cela rend le scan N-k traitable même pour des milliers de contingences et des centaines d'éléments surveillés.
-    </div>
-</div>
-```
-
----
-
-#### 4. Moyens d'action curatifs
-
-Lorsqu'une surcharge est détectée sur une contingence, METRIX peut mobiliser deux catégories
-d'actions correctives, en plus du redispatching préventif.
-
-```{raw} html
-<div class="diagram-card">
-    <svg width="100%" viewBox="0 0 680 470" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-            <marker id="b4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </marker>
-        </defs>
-
-        <text class="th" x="340" y="24" text-anchor="middle">Mécanismes d'actions correctives</text>
-
-        <!-- Preventive -->
-        <g class="fill-teal">
-            <rect x="40" y="50" width="600" height="60" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="72" text-anchor="middle" dominant-baseline="central">Actions préventives (appliquées avant toute contingence)</text>
-            <text class="ts" x="340" y="92" text-anchor="middle" dominant-baseline="central">Redispatching de production · Réglage des transformateurs déphaseurs · Consigne HVDC · Délestage</text>
-        </g>
-
-        <line x1="340" y1="110" x2="340" y2="138" class="arr" marker-end="url(#b4)"/>
-        <text class="ts" x="346" y="130" text-anchor="start">Si la surcharge persiste en N-k</text>
-
-        <!-- Curative split -->
-        <rect class="dashed-zone" x="30" y="138" width="300" height="190" rx="12"/>
-        <text class="th" x="50" y="160">Actions curatives</text>
-        <text class="ts" x="50" y="176">(appliquées après la contingence)</text>
-
-        <g class="fill-blue">
-            <rect x="42" y="192" width="276" height="28" rx="8" stroke-width="0.5"/>
-            <text class="th" x="180" y="206" text-anchor="middle" dominant-baseline="central">Redispatching de production</text>
-        </g>
-        <g class="fill-blue">
-            <rect x="42" y="228" width="276" height="28" rx="8" stroke-width="0.5"/>
-            <text class="th" x="180" y="242" text-anchor="middle" dominant-baseline="central">Transformateur déphaseur</text>
-        </g>
-        <g class="fill-blue">
-            <rect x="42" y="264" width="276" height="28" rx="8" stroke-width="0.5"/>
-            <text class="th" x="180" y="278" text-anchor="middle" dominant-baseline="central">Consigne HVDC</text>
-        </g>
-        <g class="fill-blue">
-            <rect x="42" y="300" width="276" height="28" rx="8" stroke-width="0.5"/>
-            <text class="th" x="180" y="314" text-anchor="middle" dominant-baseline="central">Délestage</text>
-        </g>
-
-        <rect class="dashed-zone" x="350" y="138" width="300" height="190" rx="12"/>
-        <text class="th" x="370" y="160">Parades topologiques</text>
-        <text class="ts" x="370" y="176">(manœuvres réseau après contingence)</text>
-
-        <g class="fill-purple">
-            <rect x="362" y="192" width="276" height="28" rx="8" stroke-width="0.5"/>
-            <text class="th" x="500" y="206" text-anchor="middle" dominant-baseline="central">Ouvrir une ligne ou un couplage</text>
-        </g>
-        <g class="fill-purple">
-            <rect x="362" y="228" width="276" height="28" rx="8" stroke-width="0.5"/>
-            <text class="th" x="500" y="242" text-anchor="middle" dominant-baseline="central">Fermer un couplage</text>
-        </g>
-        <g class="fill-purple">
-            <rect x="362" y="264" width="276" height="62" rx="8" stroke-width="0.5"/>
-            <text class="th" x="500" y="280" text-anchor="middle" dominant-baseline="central">Parade « ne rien faire »</text>
-            <text class="ts" x="500" y="298" text-anchor="middle" dominant-baseline="central">(actions curatives seules,</text>
-            <text class="ts" x="500" y="312" text-anchor="middle" dominant-baseline="central">pas de changement topologique)</text>
-        </g>
-
-        <g class="fill-gray">
-            <rect x="40" y="350" width="600" height="80" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="374" text-anchor="middle" dominant-baseline="central">L'optimiseur sélectionne la combinaison de moindre coût</text>
-            <text class="ts" x="340" y="394" text-anchor="middle" dominant-baseline="central">Exactement une parade est activée par contingence (modélisée comme choix binaire).</text>
-            <text class="ts" x="340" y="412" text-anchor="middle" dominant-baseline="central">Les actions curatives sont attachées à la parade choisie.</text>
-        </g>
-    </svg>
-    <div class="legend">
-        Pour une contingence donnée, l'optimiseur doit choisir exactement une parade topologique (incluant l'option « ne rien faire »). Les actions curatives (production, HVDC, déphaseurs) opèrent dans la topologie post-parade choisie. Le coût d'activation d'une parade est proportionnel à la probabilité de la contingence et au nombre de contraintes associées, de sorte que les parades ne sont utilisées que lorsque les actions préventives seules sont insuffisantes.
-    </div>
-</div>
-```
-
-#### Mécanisme ITAM
-
-Lorsque l'option ITAM est activée (paramètre `TESTITAM` dans `fort.json`),
-METRIX vérifie un seuil supplémentaire : la **limite avant action curative**
-(`seuilMaxAvantCur_`), qui représente le transit que l'élément peut supporter
-pendant la brève fenêtre entre la contingence et l'exécution effective de
-l'action curative. Ce seuil est typiquement plus permissif que le seuil N-k
-(qui s'applique en régime stabilisé après application du curatif).
-
-L'activation de l'ITAM modifie cinq points du calcul :
-
-1. **Sélection automatique des seuils** : tant qu'aucune parade n'est activée
-sur un incident, METRIX utilise le seuil N-k classique (`seuilMaxInc_`). Une
-fois les parades activées, c'est le seuil avant-curatif (`seuilMaxAvantCur_`)
-qui s'applique pour les détections suivantes sur cet incident.
-
-2. **Création de parades « ne rien faire »** : pour les incidents qui ont du
-curatif disponible mais aucune parade topologique définie, METRIX crée
-automatiquement une parade fictive « ne rien faire ». Cela permet au
-mécanisme de parade de s'enclencher et de pouvoir ensuite vérifier le seuil
-avant-curatif.
-
-3. **Re-détection sur incidents à parades activées** : sans ITAM, on ne
-re-détecte plus de contraintes sur un incident une fois ses parades
-activées. Avec ITAM, la détection continue afin de vérifier que le seuil
-avant-curatif est respecté ; si ce n'est pas le cas, de nouvelles
-contraintes sont ajoutées.
-
-4. **Contrainte ITAM dédiée** : lors de la première activation des parades
-d'un incident, METRIX ajoute une contrainte supplémentaire au LP
-correspondant explicitement au seuil avant-curatif, en plus des contraintes
-par parade.
-
-5. **Enregistrement de la menace pré-parade** : pour les sorties (résultats
-R3 notamment), METRIX conserve trace de la menace maximale rencontrée
-avant l'activation des parades (`menaceMaxAvantParade_`), permettant aux
-analystes de mesurer le niveau de surcharge transitoire.
-
-Sans ITAM (cas par défaut), seul le seuil N-k stabilisé est vérifié, et le
-mécanisme est neutralisé sur les cinq points ci-dessus.
-
----
-
-#### 5. Modes de calcul
-
-METRIX propose quatre modes de calcul, chacun correspondant à un niveau d'optimisation différent.
-
-```{raw} html
-<div class="diagram-card">
-    <svg width="100%" viewBox="0 0 680 380" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-            <marker id="b5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </marker>
-        </defs>
-
-        <text class="th" x="340" y="24" text-anchor="middle">Modes de calcul</text>
-
-        <!-- LOAD_FLOW -->
-        <g class="fill-gray">
-            <rect x="40" y="50" width="290" height="70" rx="8" stroke-width="0.5"/>
-            <text class="th" x="185" y="72" text-anchor="middle" dominant-baseline="central">Load-flow</text>
-            <text class="ts" x="185" y="90" text-anchor="middle" dominant-baseline="central">Calcul des flux uniquement, pas d'optimisation.</text>
-            <text class="ts" x="185" y="106" text-anchor="middle" dominant-baseline="central">Itération unique, signale les surcharges.</text>
-        </g>
-
-        <!-- OPF_WITHOUT_REDISPATCH -->
-        <g class="fill-teal">
-            <rect x="350" y="50" width="290" height="70" rx="8" stroke-width="0.5"/>
-            <text class="th" x="495" y="72" text-anchor="middle" dominant-baseline="central">OPF sans redispatching</text>
-            <text class="ts" x="495" y="90" text-anchor="middle" dominant-baseline="central">HVDC et déphaseurs uniquement.</text>
-            <text class="ts" x="495" y="106" text-anchor="middle" dominant-baseline="central">Pas d'ajustement de production autorisé.</text>
-        </g>
-
-        <!-- OPF -->
-        <g class="fill-blue">
-            <rect x="40" y="140" width="290" height="70" rx="8" stroke-width="0.5"/>
-            <text class="th" x="185" y="162" text-anchor="middle" dominant-baseline="central">OPF (complet)</text>
-            <text class="ts" x="185" y="180" text-anchor="middle" dominant-baseline="central">Toutes les actions préventives et curatives.</text>
-            <text class="ts" x="185" y="196" text-anchor="middle" dominant-baseline="central">Doit trouver une solution réalisable.</text>
-        </g>
-
-        <!-- OPF_WITH_OVERLOAD -->
-        <g class="fill-amber">
-            <rect x="350" y="140" width="290" height="70" rx="8" stroke-width="0.5"/>
-            <text class="th" x="495" y="162" text-anchor="middle" dominant-baseline="central">OPF avec tolérance de surcharge</text>
-            <text class="ts" x="495" y="180" text-anchor="middle" dominant-baseline="central">Comme l'OPF, mais les surcharges</text>
-            <text class="ts" x="495" y="196" text-anchor="middle" dominant-baseline="central">résiduelles sont pénalisées, pas interdites.</text>
-        </g>
-
-        <!-- Capabilities summary -->
-        <g class="fill-gray">
-            <rect x="40" y="240" width="600" height="110" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="264" text-anchor="middle" dominant-baseline="central">Capacités par mode</text>
-            <text class="ts" x="60" y="288" text-anchor="start">Load-flow : calcul des flux uniquement — pas de boucle itérative</text>
-            <text class="ts" x="60" y="306" text-anchor="start">OPF sans redispatching : HVDC + déphaseurs + variables d'écart (pas de production)</text>
-            <text class="ts" x="60" y="324" text-anchor="start">OPF (complet) : toutes les actions préventives + curatives, parades, redispatching de production</text>
-            <text class="ts" x="60" y="342" text-anchor="start">OPF avec surcharge : comme l'OPF, avec des variables d'écart permettant les surcharges résiduelles</text>
-        </g>
-    </svg>
-    <div class="legend">
-        En mode Load-flow, un seul passage est effectué (pas de boucle itérative). En OPF sans redispatching, la production est fixée ; seuls les réglages HVDC et déphaseurs sont optimisés, et les surcharges sont signalées via des variables d'écart. Le mode OPF complet utilise la boucle de micro-itération complète avec tous les moyens d'action disponibles. Le mode OPF avec tolérance de surcharge est identique à l'OPF complet sauf que les surcharges insolubles produisent une solution pénalisée plutôt qu'un échec.
-    </div>
-</div>
-```
-
----
-
-#### Notes complémentaires
-
-##### Génération de contraintes
-
-Plutôt que de formuler le problème complet de sûreté dès le départ (ce qui inclurait une contrainte
-par élément surveillé par contingence — potentiellement des millions de contraintes), METRIX démarre
-avec un dispatch non contraint et ajoute progressivement uniquement les contraintes violées.
-
-##### Facteurs de sensibilité pour le scan N-k rapide
-
-Les flux post-contingence ne sont pas calculés par des load-flows indépendants. METRIX pré-calcule
-des **facteurs de distribution de transfert de puissance** (PTDF) et des **facteurs de distribution de perte de ligne** (LODF)
-à partir du modèle réseau en courant continu. Ces coefficients de sensibilité linéaires permettent d'estimer
-les transits post-contingence comme une combinaison linéaire des flux pré-contingence et des
-variations d'injection, rendant le scan N-k efficace en temps de calcul.
-
-##### Escalade du solveur
-
-L'optimisation démarre comme un simple **Programme Linéaire** (LP), résolu par la méthode du Simplexe. Lorsque
-des variables entières sont introduites, le problème devient un **Programme Linéaire Mixte en Nombres
-Entiers** (MIP), et le solveur bascule en Branch & Bound. Cette escalade se produit donc, lors de l'activation
-de parades topologiques (variables d'activation binaires), lors de la modélisation des HVDC en émulation AC
-(TD fictifs — variables fixées initialement puis déverrouillées si une contrainte les concerne), et lors de
-la création de variables de comptage des actions curatives si `NBMAXCUR` > 0 (=nb max d’actions curatives par incident).
-
-##### Ré-estimation des pertes
-
-Après convergence, METRIX peut optionnellement ré-estimer les pertes réseau sur la base de la distribution finale
-des flux. Si les pertes ré-estimées diffèrent significativement du taux de pertes supposé, l'ensemble du calcul est
-relancé avec le taux de pertes mis à jour. Cette boucle est contrôlée par le paramètre `RELPERTE` (désactivée
-par défaut). Quand elle est activée, elle s'exécute au maximum le nombre de fois configuré. 
+Le déroulé détaillé de cette boucle — critères de sûreté vérifiés, moyens d'action mobilisables,
+modes de calcul, puis détails d'implémentation — fait l'objet de la section
+{ref}`micro-iterations` en fin de document.
 
 ###	Actions préventives et curatives pour satisfaire les contraintes de seuil
 
@@ -1500,7 +1024,497 @@ ou après renforcement (contraintes résiduelles).
 L'intérêt des VM est de pointer parmi toutes les lignes surveillées et les incidents, des éléments coûteux pour la
 fonction objectif. Un interclassement de ces VM permet de classer l'importance de ces contraintes.
 
-## Micro-itérations — Détails d'implémentation
+(micro-iterations)=
+## Micro-itérations
+
+METRIX ne formule pas d'emblée l'intégralité des contraintes de sûreté : il part d'un plan de production non
+contraint et n'ajoute au problème d'optimisation que les contraintes effectivement violées, itération après
+itération. Cette section décrit d'abord ce mécanisme d'un point de vue fonctionnel, puis son implémentation.
+
+(micro-it-fonctionnel)=
+### Description fonctionnelle
+
+Cette section décrit le fonctionnement de la boucle de micro-itération sans référence au code : critères de
+sûreté vérifiés, moyens d'action disponibles et modes de calcul proposés. Le pendant technique est décrit dans
+{ref}`micro-it-implementation`.
+
+#### 1. Principe général
+
+METRIX recherche l'**ajustement de moindre coût** du plan de production afin qu'aucune limite thermique
+ne soit violée, ni sur le réseau intact (situation N), ni après une contingence crédible (situations N-k).
+
+Description d'une **micro-itération** :
+
+```{raw} html
+<div class="diagram-card">
+    <svg width="100%" viewBox="0 0 680 660" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <marker id="b1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </marker>
+        </defs>
+
+        <text class="th" x="340" y="28" text-anchor="middle">Optimisation itérative sous contraintes de sûreté</text>
+
+        <!-- Critères d'arrêt -->
+        <g class="fill-gray">
+            <rect x="190" y="50" width="300" height="44" rx="8" stroke-width="0.5"/>
+            <text class="th" x="340" y="72" text-anchor="middle" dominant-baseline="central">Critères d'arrêt</text>
+        </g>
+        <line x1="340" y1="94" x2="340" y2="122" class="arr" marker-end="url(#b1)"/>
+        <line x1="490" y1="72" x2="560" y2="72" class="arr" marker-end="url(#b1)" stroke="var(--diag-red)"/>
+        <text class="ts" x="610" y="68" text-anchor="middle" style="fill:var(--diag-red)">Max contraintes</text>
+        <text class="ts" x="610" y="84" text-anchor="middle" style="fill:var(--diag-red)">ou max itérations</text>
+
+        <!-- Optimiser -->
+        <g class="fill-purple">
+            <rect x="170" y="122" width="340" height="60" rx="8" stroke-width="0.5"/>
+            <text class="th" x="340" y="144" text-anchor="middle" dominant-baseline="central">Optimiser le plan de production</text>
+            <text class="ts" x="340" y="164" text-anchor="middle" dominant-baseline="central">Minimiser le coût de redispatching sous contraintes connues</text>
+        </g>
+        <line x1="340" y1="182" x2="340" y2="210" class="arr" marker-end="url(#b1)"/>
+
+        <!-- Calculer les flux -->
+        <g class="fill-teal">
+            <rect x="170" y="210" width="340" height="68" rx="8" stroke-width="0.5"/>
+            <text class="th" x="340" y="232" text-anchor="middle" dominant-baseline="central">Calculer les flux réseau</text>
+            <text class="ts" x="340" y="250" text-anchor="middle" dominant-baseline="central">Load-flow DC → transits de puissance active</text>
+            <text class="ts" x="340" y="264" text-anchor="middle" dominant-baseline="central">sur toutes les lignes</text>
+        </g>
+        <line x1="340" y1="278" x2="340" y2="306" class="arr" marker-end="url(#b1)"/>
+
+        <!-- Vérifier les critères de sûreté -->
+        <g class="fill-coral">
+            <rect x="170" y="306" width="340" height="80" rx="8" stroke-width="0.5"/>
+            <text class="th" x="340" y="330" text-anchor="middle" dominant-baseline="central">Vérifier les critères de sûreté</text>
+            <text class="ts" x="340" y="350" text-anchor="middle" dominant-baseline="central">Pour chaque élément surveillé :</text>
+            <text class="ts" x="340" y="366" text-anchor="middle" dominant-baseline="central">transit vs limite thermique en N, puis en N-k</text>
+        </g>
+        <line x1="340" y1="386" x2="340" y2="414" class="arr" marker-end="url(#b1)"/>
+
+        <!-- Violation détectée ? -->
+        <g class="fill-amber">
+            <rect x="190" y="414" width="300" height="44" rx="8" stroke-width="0.5"/>
+            <text class="th" x="340" y="436" text-anchor="middle" dominant-baseline="central">Violation détectée ?</text>
+        </g>
+
+        <!-- Branch Oui → Ajouter contraintes (gauche) -->
+        <path d="M290 458 L190 486" class="arr" fill="none" marker-end="url(#b1)"/>
+        <text class="ts" x="210" y="476" text-anchor="middle">Oui</text>
+
+        <!-- Branch Non → Dispatch sûr trouvé (droite) -->
+        <path d="M390 458 L490 486" class="arr" fill="none" marker-end="url(#b1)" stroke="var(--diag-green)"/>
+        <text class="ts" x="470" y="476" text-anchor="middle" style="fill:var(--diag-green)">Non</text>
+
+        <!-- Ajouter contraintes (gauche, bleu) -->
+        <g class="fill-blue">
+            <rect x="40" y="486" width="300" height="80" rx="8" stroke-width="0.5"/>
+            <text class="th" x="190" y="508" text-anchor="middle" dominant-baseline="central">Ajouter les contraintes violées</text>
+            <text class="ts" x="190" y="528" text-anchor="middle" dominant-baseline="central">Le cas échéant : actions curatives</text>
+            <text class="ts" x="190" y="544" text-anchor="middle" dominant-baseline="central">(topologie, redispatching curatif)</text>
+        </g>
+
+        <!-- Dispatch sûr trouvé (droite, teal) -->
+        <g class="fill-teal">
+            <rect x="340" y="486" width="300" height="80" rx="8" stroke-width="0.5"/>
+            <text class="th" x="490" y="508" text-anchor="middle" dominant-baseline="central">Dispatch sûr trouvé</text>
+            <text class="ts" x="490" y="528" text-anchor="middle" dominant-baseline="central">Convergence atteinte</text>
+            <text class="ts" x="490" y="544" text-anchor="middle" dominant-baseline="central">Résultats en sortie</text>
+        </g>
+
+        <!-- Boucle de retour : Ajouter contraintes → Critères d'arrêt -->
+        <path d="M190 566 L190 612 L20 612 L20 72 L190 72" fill="none" class="arr" stroke-width="1.5" marker-end="url(#b1)" stroke-dasharray="6 4"/>
+        <text class="ts" x="28" y="312" text-anchor="start">↑ Ré-optimiser</text>
+        <text class="ts" x="28" y="328" text-anchor="start">avec nouvelles</text>
+        <text class="ts" x="28" y="344" text-anchor="start">contraintes</text>
+    </svg>
+</div>
+```
+
+---
+
+#### 2. Seuils thermiques et régimes de sûreté
+
+Chaque élément surveillé (ligne, transformateur ou section) se voit attribuer des **limites thermiques** qui dépendent du régime d'exploitation.
+Ces limites représentent le transit de puissance active maximal que l'élément peut supporter selon différents horizons temporels.
+
+```{raw} html
+<div class="diagram-card">
+    <svg width="100%" viewBox="0 0 680 330" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <marker id="b2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </marker>
+        </defs>
+
+        <text class="th" x="340" y="24" text-anchor="middle">Hiérarchie des limites thermiques pour un élément surveillé</text>
+
+        <!-- N -->
+        <g class="fill-teal">
+            <rect x="40" y="50" width="130" height="70" rx="8" stroke-width="0.5"/>
+            <text class="th" x="105" y="72" text-anchor="middle" dominant-baseline="central">Limite N</text>
+            <text class="ts" x="105" y="92" text-anchor="middle" dominant-baseline="central">Régime permanent</text>
+            <text class="ts" x="105" y="106" text-anchor="middle" dominant-baseline="central">(permanent)</text>
+        </g>
+        <line x1="170" y1="85" x2="198" y2="85" class="arr" marker-end="url(#b2)"/>
+
+        <!-- N-1 -->
+        <g class="fill-blue">
+            <rect x="198" y="50" width="130" height="70" rx="8" stroke-width="0.5"/>
+            <text class="th" x="263" y="72" text-anchor="middle" dominant-baseline="central">Limite N-1</text>
+            <text class="ts" x="263" y="92" text-anchor="middle" dominant-baseline="central">Post-contingence</text>
+            <text class="ts" x="263" y="106" text-anchor="middle" dominant-baseline="central">(simple)</text>
+        </g>
+        <line x1="328" y1="85" x2="356" y2="85" class="arr" marker-end="url(#b2)"/>
+
+        <!-- N-k -->
+        <g class="fill-purple">
+            <rect x="356" y="50" width="130" height="70" rx="8" stroke-width="0.5"/>
+            <text class="th" x="421" y="72" text-anchor="middle" dominant-baseline="central">Limite N-k</text>
+            <text class="ts" x="421" y="92" text-anchor="middle" dominant-baseline="central">Post-contingence</text>
+            <text class="ts" x="421" y="106" text-anchor="middle" dominant-baseline="central">(complexe)</text>
+        </g>
+        <line x1="486" y1="85" x2="514" y2="85" class="arr" marker-end="url(#b2)"/>
+
+        <!-- ITAM -->
+        <g class="fill-amber">
+            <rect x="514" y="50" width="130" height="70" rx="8" stroke-width="0.5"/>
+            <text class="th" x="579" y="72" text-anchor="middle" dominant-baseline="central">Limite ITAM</text>
+            <text class="ts" x="579" y="92" text-anchor="middle" dominant-baseline="central">Avant action</text>
+            <text class="ts" x="579" y="106" text-anchor="middle" dominant-baseline="central">curative</text>
+        </g>
+
+        <!-- Explanation boxes -->
+        <g class="fill-gray">
+            <rect x="40" y="200" width="290" height="56" rx="8" stroke-width="0.5"/>
+            <text class="th" x="185" y="220" text-anchor="middle" dominant-baseline="central">Limites symétriques</text>
+            <text class="ts" x="185" y="240" text-anchor="middle" dominant-baseline="central">Même limite quel que soit le sens du flux</text>
+        </g>
+
+        <g class="fill-gray">
+            <rect x="350" y="200" width="290" height="56" rx="8" stroke-width="0.5"/>
+            <text class="th" x="495" y="220" text-anchor="middle" dominant-baseline="central">Limites asymétriques</text>
+            <text class="ts" x="495" y="240" text-anchor="middle" dominant-baseline="central">Limites différentes selon le sens du flux</text>
+        </g>
+
+        <text class="ts" x="340" y="290" text-anchor="middle">Toutes les limites peuvent être redéfinies par variante, permettant des calibrages thermiques spécifiques au scénario.</text>
+    </svg>
+    <div class="legend">
+        La limite N s'applique en conditions normales d'exploitation (régime permanent). Les limites N-1 et N-k s'appliquent après une contingence et sont généralement plus élevées, reflétant la capacité thermique à court terme de l'élément. La limite ITAM (avant action curative) est la plus permissive : elle représente le transit que l'élément peut supporter pendant la période entre la contingence et l'exécution de l'action curative.
+    </div>
+</div>
+```
+
+Lors de la vérification de sûreté, METRIX sélectionne la limite appropriée en fonction
+du contexte : si aucune contingence n'est évaluée, la limite N s'applique. Si une contingence
+est évaluée et que des actions curatives sont disponibles, la limite ITAM peut être utilisée pour
+refléter la capacité de surcharge transitoire avant l'exécution de l'action curative.
+
+---
+
+#### 3. Vérification de sûreté : scan en N et N-k
+
+À chaque micro-itération, après que l'optimiseur a produit un dispatch de production, METRIX vérifie
+qu'aucun élément surveillé ne dépasse sa limite thermique. Cette vérification est effectuée en deux étapes.
+
+```{raw} html
+<div class="diagram-card">
+    <svg width="100%" viewBox="0 0 680 580" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <marker id="b3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </marker>
+        </defs>
+
+        <text class="th" x="340" y="24" text-anchor="middle">Scan de sûreté en deux étapes</text>
+
+        <!-- Stage 1 -->
+        <rect class="dashed-zone" x="30" y="44" width="620" height="150" rx="16"/>
+        <text class="th" x="50" y="66">Étape 1 — Réseau intact (N)</text>
+
+        <g class="fill-teal">
+            <rect x="50" y="82" width="240" height="44" rx="8" stroke-width="0.5"/>
+            <text class="th" x="170" y="104" text-anchor="middle" dominant-baseline="central">Calculer le transit</text>
+        </g>
+        <line x1="290" y1="104" x2="318" y2="104" class="arr" marker-end="url(#b3)"/>
+        <g class="fill-teal">
+            <rect x="318" y="82" width="164" height="44" rx="8" stroke-width="0.5"/>
+            <text class="th" x="400" y="104" text-anchor="middle" dominant-baseline="central">Comparer à la limite N</text>
+        </g>
+        <line x1="482" y1="104" x2="510" y2="104" class="arr" marker-end="url(#b3)"/>
+        <g class="fill-coral">
+            <rect x="510" y="82" width="120" height="44" rx="8" stroke-width="0.5"/>
+            <text class="th" x="570" y="104" text-anchor="middle" dominant-baseline="central">Surcharge ?</text>
+        </g>
+
+        <text class="ts" x="50" y="152" text-anchor="start">Pour chaque élément surveillé, en utilisant le résultat du load-flow DC.</text>
+        <text class="ts" x="50" y="168" text-anchor="start">Une surcharge en N est enregistrée et masquera les surcharges N-k plus petites sur le même élément.</text>
+
+        <!-- Stage 2 -->
+        <rect class="dashed-zone" x="30" y="210" width="620" height="370" rx="16"/>
+        <text class="th" x="50" y="232">Étape 2 — Post-contingence (N-k)</text>
+
+        <g class="fill-blue">
+            <rect x="50" y="248" width="240" height="56" rx="8" stroke-width="0.5"/>
+            <text class="th" x="170" y="268" text-anchor="middle" dominant-baseline="central">Estimer le transit post-contingence</text>
+            <text class="ts" x="170" y="286" text-anchor="middle" dominant-baseline="central">(via facteurs de sensibilité)</text>
+        </g>
+        <line x1="290" y1="276" x2="330" y2="276" class="arr" marker-end="url(#b3)"/>
+        <g class="fill-blue">
+            <rect x="330" y="248" width="140" height="56" rx="8" stroke-width="0.5"/>
+            <text class="th" x="400" y="268" text-anchor="middle" dominant-baseline="central">Comparer à la limite</text>
+            <text class="ts" x="400" y="286" text-anchor="middle" dominant-baseline="central">N-1 / N-k / ITAM</text>
+        </g>
+        <line x1="470" y1="276" x2="510" y2="276" class="arr" marker-end="url(#b3)"/>
+        <g class="fill-coral">
+            <rect x="510" y="248" width="120" height="56" rx="8" stroke-width="0.5"/>
+            <text class="th" x="570" y="268" text-anchor="middle" dominant-baseline="central">Surcharge ?</text>
+            <text class="ts" x="570" y="286" text-anchor="middle" dominant-baseline="central">Appliquer les filtres</text>
+        </g>
+
+        <text class="ts" x="50" y="332" text-anchor="start">Pour chaque contingence × chaque élément surveillé. Les transits post-contingence sont estimés</text>
+        <text class="ts" x="50" y="348" text-anchor="start">via les facteurs de sensibilité (PTDF/LODF), évitant un load-flow complet par contingence.</text>
+
+        <text class="th" x="50" y="386">Règles de filtrage (une surcharge est écartée si) :</text>
+        <text class="ts" x="50" y="406" text-anchor="start">• L'incident a déjà ses parades activées</text>
+        <text class="ts" x="58" y="420" text-anchor="start">(sans ITAM : ignoré ; avec ITAM : détection sur seuil avant-curatif)</text>
+        <text class="ts" x="50" y="440" text-anchor="start">• La contrainte a déjà été ajoutée dans une micro-itération précédente</text>
+        <text class="ts" x="58" y="454" text-anchor="start">(modes avec variables d'écart uniquement)</text>
+        <text class="ts" x="50" y="474" text-anchor="start">• Aucun levier d'action n'est mobilisable</text>
+        <text class="ts" x="58" y="488" text-anchor="start">(modes avec variables d'écart uniquement)</text>
+        <text class="ts" x="50" y="508" text-anchor="start">• La surcharge est inférieure à la tolérance numérique</text>
+        <text class="ts" x="50" y="528" text-anchor="start">• La surcharge est plus petite que la surcharge N sur le même élément</text>
+
+        <text class="ts" x="50" y="556" text-anchor="start">Les menaces les plus sévères par élément sont enregistrées pour les résultats.</text>
+    </svg>
+    <div class="legend">
+        Les transits post-contingence ne sont pas calculés en exécutant un load-flow complet par contingence. METRIX utilise des facteurs de sensibilité linéaires (PTDF et LODF) pré-calculés à partir de la Jacobienne du réseau. Cela rend le scan N-k traitable même pour des milliers de contingences et des centaines d'éléments surveillés.
+    </div>
+</div>
+```
+
+---
+
+#### 4. Moyens d'action curatifs
+
+Lorsqu'une surcharge est détectée sur une contingence, METRIX peut mobiliser deux catégories
+d'actions correctives, en plus du redispatching préventif.
+
+```{raw} html
+<div class="diagram-card">
+    <svg width="100%" viewBox="0 0 680 470" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <marker id="b4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </marker>
+        </defs>
+
+        <text class="th" x="340" y="24" text-anchor="middle">Mécanismes d'actions correctives</text>
+
+        <!-- Preventive -->
+        <g class="fill-teal">
+            <rect x="40" y="50" width="600" height="60" rx="8" stroke-width="0.5"/>
+            <text class="th" x="340" y="72" text-anchor="middle" dominant-baseline="central">Actions préventives (appliquées avant toute contingence)</text>
+            <text class="ts" x="340" y="92" text-anchor="middle" dominant-baseline="central">Redispatching de production · Réglage des transformateurs déphaseurs · Consigne HVDC · Délestage</text>
+        </g>
+
+        <line x1="340" y1="110" x2="340" y2="138" class="arr" marker-end="url(#b4)"/>
+        <text class="ts" x="346" y="130" text-anchor="start">Si la surcharge persiste en N-k</text>
+
+        <!-- Curative split -->
+        <rect class="dashed-zone" x="30" y="138" width="300" height="190" rx="12"/>
+        <text class="th" x="50" y="160">Actions curatives</text>
+        <text class="ts" x="50" y="176">(appliquées après la contingence)</text>
+
+        <g class="fill-blue">
+            <rect x="42" y="192" width="276" height="28" rx="8" stroke-width="0.5"/>
+            <text class="th" x="180" y="206" text-anchor="middle" dominant-baseline="central">Redispatching de production</text>
+        </g>
+        <g class="fill-blue">
+            <rect x="42" y="228" width="276" height="28" rx="8" stroke-width="0.5"/>
+            <text class="th" x="180" y="242" text-anchor="middle" dominant-baseline="central">Transformateur déphaseur</text>
+        </g>
+        <g class="fill-blue">
+            <rect x="42" y="264" width="276" height="28" rx="8" stroke-width="0.5"/>
+            <text class="th" x="180" y="278" text-anchor="middle" dominant-baseline="central">Consigne HVDC</text>
+        </g>
+        <g class="fill-blue">
+            <rect x="42" y="300" width="276" height="28" rx="8" stroke-width="0.5"/>
+            <text class="th" x="180" y="314" text-anchor="middle" dominant-baseline="central">Délestage</text>
+        </g>
+
+        <rect class="dashed-zone" x="350" y="138" width="300" height="190" rx="12"/>
+        <text class="th" x="370" y="160">Parades topologiques</text>
+        <text class="ts" x="370" y="176">(manœuvres réseau après contingence)</text>
+
+        <g class="fill-purple">
+            <rect x="362" y="192" width="276" height="28" rx="8" stroke-width="0.5"/>
+            <text class="th" x="500" y="206" text-anchor="middle" dominant-baseline="central">Ouvrir une ligne ou un couplage</text>
+        </g>
+        <g class="fill-purple">
+            <rect x="362" y="228" width="276" height="28" rx="8" stroke-width="0.5"/>
+            <text class="th" x="500" y="242" text-anchor="middle" dominant-baseline="central">Fermer un couplage</text>
+        </g>
+        <g class="fill-purple">
+            <rect x="362" y="264" width="276" height="62" rx="8" stroke-width="0.5"/>
+            <text class="th" x="500" y="280" text-anchor="middle" dominant-baseline="central">Parade « ne rien faire »</text>
+            <text class="ts" x="500" y="298" text-anchor="middle" dominant-baseline="central">(actions curatives seules,</text>
+            <text class="ts" x="500" y="312" text-anchor="middle" dominant-baseline="central">pas de changement topologique)</text>
+        </g>
+
+        <g class="fill-gray">
+            <rect x="40" y="350" width="600" height="80" rx="8" stroke-width="0.5"/>
+            <text class="th" x="340" y="374" text-anchor="middle" dominant-baseline="central">L'optimiseur sélectionne la combinaison de moindre coût</text>
+            <text class="ts" x="340" y="394" text-anchor="middle" dominant-baseline="central">Exactement une parade est activée par contingence (modélisée comme choix binaire).</text>
+            <text class="ts" x="340" y="412" text-anchor="middle" dominant-baseline="central">Les actions curatives sont attachées à la parade choisie.</text>
+        </g>
+    </svg>
+    <div class="legend">
+        Pour une contingence donnée, l'optimiseur doit choisir exactement une parade topologique (incluant l'option « ne rien faire »). Les actions curatives (production, HVDC, déphaseurs) opèrent dans la topologie post-parade choisie. Le coût d'activation d'une parade est proportionnel à la probabilité de la contingence et au nombre de contraintes associées, de sorte que les parades ne sont utilisées que lorsque les actions préventives seules sont insuffisantes.
+    </div>
+</div>
+```
+
+##### Mécanisme ITAM
+
+Lorsque l'option ITAM est activée (paramètre `TESTITAM` dans `fort.json`),
+METRIX vérifie un seuil supplémentaire : la **limite avant action curative**
+(`seuilMaxAvantCur_`), qui représente le transit que l'élément peut supporter
+pendant la brève fenêtre entre la contingence et l'exécution effective de
+l'action curative. Ce seuil est typiquement plus permissif que le seuil N-k
+(qui s'applique en régime stabilisé après application du curatif).
+
+L'activation de l'ITAM modifie cinq points du calcul :
+
+1. **Sélection automatique des seuils** : tant qu'aucune parade n'est activée
+sur un incident, METRIX utilise le seuil N-k classique (`seuilMaxInc_`). Une
+fois les parades activées, c'est le seuil avant-curatif (`seuilMaxAvantCur_`)
+qui s'applique pour les détections suivantes sur cet incident.
+
+2. **Création de parades « ne rien faire »** : pour les incidents qui ont du
+curatif disponible mais aucune parade topologique définie, METRIX crée
+automatiquement une parade fictive « ne rien faire ». Cela permet au
+mécanisme de parade de s'enclencher et de pouvoir ensuite vérifier le seuil
+avant-curatif.
+
+3. **Re-détection sur incidents à parades activées** : sans ITAM, on ne
+re-détecte plus de contraintes sur un incident une fois ses parades
+activées. Avec ITAM, la détection continue afin de vérifier que le seuil
+avant-curatif est respecté ; si ce n'est pas le cas, de nouvelles
+contraintes sont ajoutées.
+
+4. **Contrainte ITAM dédiée** : lors de la première activation des parades
+d'un incident, METRIX ajoute une contrainte supplémentaire au LP
+correspondant explicitement au seuil avant-curatif, en plus des contraintes
+par parade.
+
+5. **Enregistrement de la menace pré-parade** : pour les sorties (résultats
+R3 notamment), METRIX conserve trace de la menace maximale rencontrée
+avant l'activation des parades (`menaceMaxAvantParade_`), permettant aux
+analystes de mesurer le niveau de surcharge transitoire.
+
+Sans ITAM (cas par défaut), seul le seuil N-k stabilisé est vérifié, et le
+mécanisme est neutralisé sur les cinq points ci-dessus.
+
+---
+
+#### 5. Modes de calcul
+
+METRIX propose quatre modes de calcul, chacun correspondant à un niveau d'optimisation différent.
+
+```{raw} html
+<div class="diagram-card">
+    <svg width="100%" viewBox="0 0 680 380" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <marker id="b5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </marker>
+        </defs>
+
+        <text class="th" x="340" y="24" text-anchor="middle">Modes de calcul</text>
+
+        <!-- LOAD_FLOW -->
+        <g class="fill-gray">
+            <rect x="40" y="50" width="290" height="70" rx="8" stroke-width="0.5"/>
+            <text class="th" x="185" y="72" text-anchor="middle" dominant-baseline="central">Load-flow</text>
+            <text class="ts" x="185" y="90" text-anchor="middle" dominant-baseline="central">Calcul des flux uniquement, pas d'optimisation.</text>
+            <text class="ts" x="185" y="106" text-anchor="middle" dominant-baseline="central">Itération unique, signale les surcharges.</text>
+        </g>
+
+        <!-- OPF_WITHOUT_REDISPATCH -->
+        <g class="fill-teal">
+            <rect x="350" y="50" width="290" height="70" rx="8" stroke-width="0.5"/>
+            <text class="th" x="495" y="72" text-anchor="middle" dominant-baseline="central">OPF sans redispatching</text>
+            <text class="ts" x="495" y="90" text-anchor="middle" dominant-baseline="central">HVDC et déphaseurs uniquement.</text>
+            <text class="ts" x="495" y="106" text-anchor="middle" dominant-baseline="central">Pas d'ajustement de production autorisé.</text>
+        </g>
+
+        <!-- OPF -->
+        <g class="fill-blue">
+            <rect x="40" y="140" width="290" height="70" rx="8" stroke-width="0.5"/>
+            <text class="th" x="185" y="162" text-anchor="middle" dominant-baseline="central">OPF (complet)</text>
+            <text class="ts" x="185" y="180" text-anchor="middle" dominant-baseline="central">Toutes les actions préventives et curatives.</text>
+            <text class="ts" x="185" y="196" text-anchor="middle" dominant-baseline="central">Doit trouver une solution réalisable.</text>
+        </g>
+
+        <!-- OPF_WITH_OVERLOAD -->
+        <g class="fill-amber">
+            <rect x="350" y="140" width="290" height="70" rx="8" stroke-width="0.5"/>
+            <text class="th" x="495" y="162" text-anchor="middle" dominant-baseline="central">OPF avec tolérance de surcharge</text>
+            <text class="ts" x="495" y="180" text-anchor="middle" dominant-baseline="central">Comme l'OPF, mais les surcharges</text>
+            <text class="ts" x="495" y="196" text-anchor="middle" dominant-baseline="central">résiduelles sont pénalisées, pas interdites.</text>
+        </g>
+
+        <!-- Capabilities summary -->
+        <g class="fill-gray">
+            <rect x="40" y="240" width="600" height="110" rx="8" stroke-width="0.5"/>
+            <text class="th" x="340" y="264" text-anchor="middle" dominant-baseline="central">Capacités par mode</text>
+            <text class="ts" x="60" y="288" text-anchor="start">Load-flow : calcul des flux uniquement — pas de boucle itérative</text>
+            <text class="ts" x="60" y="306" text-anchor="start">OPF sans redispatching : HVDC + déphaseurs + variables d'écart (pas de production)</text>
+            <text class="ts" x="60" y="324" text-anchor="start">OPF (complet) : toutes les actions préventives + curatives, parades, redispatching de production</text>
+            <text class="ts" x="60" y="342" text-anchor="start">OPF avec surcharge : comme l'OPF, avec des variables d'écart permettant les surcharges résiduelles</text>
+        </g>
+    </svg>
+    <div class="legend">
+        En mode Load-flow, un seul passage est effectué (pas de boucle itérative). En OPF sans redispatching, la production est fixée ; seuls les réglages HVDC et déphaseurs sont optimisés, et les surcharges sont signalées via des variables d'écart. Le mode OPF complet utilise la boucle de micro-itération complète avec tous les moyens d'action disponibles. Le mode OPF avec tolérance de surcharge est identique à l'OPF complet sauf que les surcharges insolubles produisent une solution pénalisée plutôt qu'un échec.
+    </div>
+</div>
+```
+
+---
+
+#### Compléments fonctionnels
+
+##### Génération de contraintes
+
+Plutôt que de formuler le problème complet de sûreté dès le départ (ce qui inclurait une contrainte
+par élément surveillé par contingence — potentiellement des millions de contraintes), METRIX démarre
+avec un dispatch non contraint et ajoute progressivement uniquement les contraintes violées.
+
+##### Facteurs de sensibilité pour le scan N-k rapide
+
+Les flux post-contingence ne sont pas calculés par des load-flows indépendants. METRIX pré-calcule
+des **facteurs de distribution de transfert de puissance** (PTDF) et des **facteurs de distribution de perte de ligne** (LODF)
+à partir du modèle réseau en courant continu. Ces coefficients de sensibilité linéaires permettent d'estimer
+les transits post-contingence comme une combinaison linéaire des flux pré-contingence et des
+variations d'injection, rendant le scan N-k efficace en temps de calcul.
+
+##### Escalade du solveur
+
+L'optimisation démarre comme un simple **Programme Linéaire** (LP), résolu par la méthode du Simplexe. Dès
+qu'une variable entière est introduite, le problème devient un **Programme Linéaire Mixte en Nombres Entiers**
+(MIP) et le solveur bascule en Branch & Bound. Les trois situations qui déclenchent cette bascule sont
+détaillées dans {ref}`micro-it-choix-solveur`.
+
+##### Ré-estimation des pertes
+
+Après convergence, METRIX peut optionnellement ré-estimer les pertes réseau sur la base de la distribution finale
+des flux. Si les pertes ré-estimées diffèrent significativement du taux de pertes supposé, l'ensemble du calcul est
+relancé avec le taux de pertes mis à jour. Cette boucle est contrôlée par le paramètre `RELPERTE` (désactivée
+par défaut). Quand elle est activée, elle s'exécute au maximum le nombre de fois configuré.
+
+(micro-it-implementation)=
+### Détails d'implémentation
 
 *Surveillance, détection de contraintes et construction du problème*
 
@@ -1509,7 +1523,7 @@ références aux structures de données internes, aux noms de fonctions et aux d
 algorithmiques. Elles s'adressent aux développeurs travaillant sur le code C++ de metrix-simulator.
 
 
-### 1. Vue d'ensemble d'une micro-itération
+#### 1. Vue d'ensemble d'une micro-itération
 
 Chaque micro-itération suit un pipeline séquentiel : résolution du LP, recalcul des phases (θ), détection
 des contraintes violées, puis ajout de ces contraintes au problème. La boucle s'arrête quand plus aucune
@@ -1655,7 +1669,7 @@ contrainte n'est détectée, ou quand un des critères d'arrêt est atteint.
 
 ---
 
-### 2. Détection de contraintes — logique détaillée
+#### 2. Détection de contraintes — logique détaillée
 
 La détection se fait en deux phases : d'abord en situation N (réseau intact), puis en N-k pour
 chaque incident. Quatre filtres successifs éliminent les contraintes redondantes ou insolubles avant de les retenir.
@@ -1834,7 +1848,7 @@ chaque incident. Quatre filtres successifs éliminent les contraintes redondante
 
 ---
 
-### 3. Ajout des contraintes au problème — logique détaillée
+#### 3. Ajout des contraintes au problème — logique détaillée
 
 Une fois les contraintes détectées, elles sont traduites en lignes de la matrice du problème
 d'optimisation. C'est ici que les parades sont activées, que les variables entières et curatives
@@ -2033,9 +2047,10 @@ sont créées, et que les coupes de transit sont écrites.
 
 ---
 
-### Notes complémentaires
+#### Compléments d'implémentation
 
-#### Choix du solveur
+(micro-it-choix-solveur)=
+##### Choix du solveur
 
 Le solveur démarre en mode simplexe. Il bascule en PNE (Branch & Bound) dès qu'une variable entière
 est créée. Cela se produit lors de l'activation de parades topologiques (variables d'activation
@@ -2045,7 +2060,7 @@ actions curatives si `NBMAXCUR` > 0 (=nb max d’actions curatives par incident)
 quand le problème ne contient encore aucune contrainte, le solveur n'est pas appelé : on utilise
 directement le résultat de l'empilement économique (phase hors-réseau).
 
-#### Dédoublonnage (`choixContraintesAajouter`)
+##### Dédoublonnage (`choixContraintesAajouter`)
 
 Quand le nombre de contraintes détectées dépasse `nb_max_contraints_by_iteration`, et uniquement
 en modes `OPF` ou `OPF_WITH_OVERLOAD` durant les micro-itérations 1 à 5. Cette heuristique élimine
@@ -2056,7 +2071,7 @@ est éclipsée au profit de la N sur le même élément), ou (b) les deux sont d
 n'est pas la situation N, il n'a pas d'éléments curatifs, et les transits sont à moins
 de 1 % d'écart avec un seuil à moins de 1 MW.
 
-#### Contrainte fictive de poche
+##### Contrainte fictive de poche
 
 Quand un incident rompt la connexité et que la poche perdue est récupérable via une parade
 (`pocheRecuperableEncuratif_`), qu'aucune contrainte de transit n'a été détectée sur aucun
@@ -2065,7 +2080,7 @@ micro-itération précédente, une contrainte fictive est ajoutée pour forcer l
 dans le problème. Sans cela, le mécanisme de parade (Cas A) ne se déclencherait jamais et le
 solveur ne saurait pas qu'il peut « récupérer » la poche.
 
-#### Variables d'écart
+##### Variables d'écart
 
 En modes `OPF_WITHOUT_REDISPATCH` et `OPF_WITH_OVERLOAD`, chaque contrainte peut recevoir une
 variable d'écart pénalisée dans la fonction objectif. Cela permet au solveur de tolérer
