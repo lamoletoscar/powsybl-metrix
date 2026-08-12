@@ -39,10 +39,13 @@
 
     <!-- Mise à jour second membre -->
     <g class="fill-teal">
-        <rect x="190" y="210" width="300" height="52" rx="8" stroke-width="0.5"/>
-        <text class="th" x="340" y="228" text-anchor="middle" dominant-baseline="central">Mise à jour second membre</text>
-        <text class="ts" x="340" y="248" text-anchor="middle" dominant-baseline="central">
+        <rect x="190" y="204" width="300" height="64" rx="8" stroke-width="0.5"/>
+        <text class="th" x="340" y="222" text-anchor="middle" dominant-baseline="central">Mise à jour second membre</text>
+        <text class="ts" x="340" y="242" text-anchor="middle" dominant-baseline="central">
             Injections nodales → θ (phases)
+        </text>
+        <text class="ts" x="340" y="258" text-anchor="middle" dominant-baseline="central">
+            + une résolution par poche perdue
         </text>
     </g>
     <line x1="340" y1="262" x2="340" y2="290" class="arr" marker-end="url(#a1)"/>

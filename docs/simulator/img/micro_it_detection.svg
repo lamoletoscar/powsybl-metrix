@@ -29,7 +29,7 @@
     <g class="fill-teal">
         <rect x="50" y="170" width="260" height="66" rx="8" stroke-width="0.5"/>
         <text class="th" x="180" y="186" text-anchor="middle" dominant-baseline="central">Calcul transit en N</text>
-        <text class="ts" x="180" y="206" text-anchor="middle" dominant-baseline="central">Σ(coeff × transitSurQuad(N))</text>
+        <text class="ts" x="180" y="206" text-anchor="middle" dominant-baseline="central">Σ(coeff × transit) sur quads et HVDC</text>
         <text class="ts" x="180" y="222" text-anchor="middle" dominant-baseline="central">→ stocke depassementEnN_</text>
     </g>
     <line x1="180" y1="236" x2="180" y2="250" class="arr" marker-end="url(#a2)"/>
@@ -77,7 +77,7 @@
     <g class="fill-teal">
         <rect x="55" y="602" width="260" height="52" rx="8" stroke-width="0.5"/>
         <text class="th" x="185" y="620" text-anchor="middle" dominant-baseline="central">Transit sur incident</text>
-        <text class="ts" x="185" y="640" text-anchor="middle" dominant-baseline="central">Σ(coeff × transitSurQuad(icdt))</text>
+        <text class="ts" x="185" y="640" text-anchor="middle" dominant-baseline="central">Σ(coeff × transit) sur quads et HVDC</text>
     </g>
     <line x1="185" y1="654" x2="185" y2="674" class="arr" marker-end="url(#a2)"/>
 

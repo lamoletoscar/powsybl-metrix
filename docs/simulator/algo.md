@@ -1091,9 +1091,19 @@ qu'aucun élément surveillé ne dépasse sa limite thermique. Cette vérificati
 ```
 
 :::{container} legend
-Les transits post-contingence ne sont pas calculés en exécutant un load-flow complet par contingence. METRIX
-utilise des facteurs de sensibilité linéaires (PTDF et LODF) pré-calculés à partir de la Jacobienne du réseau.
-Cela rend le scan N-k traitable même pour des milliers de contingences et des centaines d'éléments surveillés.
+Dans le cas général, les transits post-contingence ne sont pas obtenus en exécutant un load-flow complet par
+contingence. METRIX s'appuie sur des facteurs de sensibilité linéaires — facteurs de report et facteurs de
+distribution — établis à partir de la Jacobienne pour une topologie donnée, et réutilisés d'une micro-itération à
+l'autre tant que la topologie ne change pas. Le transit post-contingence s'exprime alors comme une combinaison
+linéaire du transit avant contingence et des variations d'injection, ce qui rend le scan N-k traitable même pour
+des milliers de contingences et des centaines d'éléments surveillés.
+
+Une famille de contingences échappe à cette règle : celles qui rompent la connexité en isolant une poche
+contenant encore de la consommation ou de la production. La linéarisation ne s'applique plus, et METRIX résout
+pour ces contingences un load-flow complet sur la topologie post-incident, à chaque micro-itération. La
+factorisation correspondante est mise en cache par topologie, mais la résolution, elle, est refaite à chaque
+passage. Le coût de la boucle croît donc avec le nombre de telles contingences, ce qui explique qu'elles soient
+soumises à une option d'activation dédiée.
 :::
 ::::
 
