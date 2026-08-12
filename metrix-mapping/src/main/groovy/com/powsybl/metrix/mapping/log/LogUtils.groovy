@@ -9,13 +9,19 @@ package com.powsybl.metrix.mapping.log
 
 import com.powsybl.metrix.mapping.config.ScriptLogConfig
 
+import java.time.Instant
+
 import static java.lang.System.Logger.Level.valueOf
 
 /**
  * @author Matthieu SAUR {@literal <matthieu.saur at rte-france.com>}
  */
 class LogUtils {
-    private static final char SEPARATOR = ';'
+
+    public static final String HEADER_LOG_LEVEL = "LogLevel"
+    public static final String HEADER_LOG_SECTION = "LogSection"
+    public static final String HEADER_LOG_MESSAGE = "LogMessage"
+    public static final String HEADER_LOG_TIMESTAMP = "LogTimestamp"
 
     static void bindLog(Binding binding, ScriptLogConfig scriptLogConfig) {
         binding.writeLog = { String type, String section, String message ->
@@ -29,9 +35,21 @@ class LogUtils {
 
     static void logOut(ScriptLogConfig scriptLogConfig, String logLevel, String section, String message) {
         if (scriptLogConfig != null && scriptLogConfig.getWriter() != null && canLog(logLevel, scriptLogConfig.getMaxLogLevel())) {
-            scriptLogConfig.getWriter().write(logLevel + SEPARATOR + section + SEPARATOR + message)
-            scriptLogConfig.getWriter().write(System.lineSeparator())
+            String timeStampFormatted = scriptLogConfig.getDateTimeFormatter().format(getInstantNow(scriptLogConfig))
+            String line = buildLine(logLevel, section, message, scriptLogConfig.isWithTimeStamp(), timeStampFormatted)
+            scriptLogConfig.getWriter().write(line)
         }
+    }
+
+    static void writeHeader(ScriptLogConfig scriptLogConfig) {
+        if (scriptLogConfig != null && scriptLogConfig.getWriter() != null && scriptLogConfig.isWithHeader()) {
+            String line = buildLine(HEADER_LOG_LEVEL, HEADER_LOG_SECTION, HEADER_LOG_MESSAGE, scriptLogConfig.isWithTimeStamp(), HEADER_LOG_TIMESTAMP)
+            scriptLogConfig.getWriter().write(line)
+        }
+    }
+
+    private static Instant getInstantNow(ScriptLogConfig scriptLogConfig) {
+        Instant.now(scriptLogConfig.getClock())
     }
 
     static boolean canLog(String type, System.Logger.Level maxLevelToLog) {
@@ -51,4 +69,16 @@ class LogUtils {
             return Integer.MAX_VALUE
         }
     }
+
+    private static String buildLine(String logLevel, String section, String message, boolean isWithTimestamp, String timeStampFormatted) {
+        List<String> line = new ArrayList<>()
+        if (isWithTimestamp) {
+            line.add(timeStampFormatted)
+        }
+        line.add(logLevel)
+        line.add(section)
+        line.add(message)
+        return String.join(";", line) + System.lineSeparator()
+    }
+
 }

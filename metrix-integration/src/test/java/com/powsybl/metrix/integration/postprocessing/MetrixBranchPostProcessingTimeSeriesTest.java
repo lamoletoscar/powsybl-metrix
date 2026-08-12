@@ -10,27 +10,18 @@ package com.powsybl.metrix.integration.postprocessing;
 import com.google.common.collect.Sets;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.serde.NetworkSerDe;
+import com.powsybl.metrix.commons.data.datatable.DataTableStore;
 import com.powsybl.metrix.integration.AbstractMetrix;
 import com.powsybl.metrix.integration.MetrixDslData;
 import com.powsybl.metrix.integration.MetrixDslDataLoader;
 import com.powsybl.metrix.integration.configuration.MetrixParameters;
-import com.powsybl.metrix.integration.dataGenerator.MetrixOutputData;
-import com.powsybl.metrix.commons.data.datatable.DataTableStore;
+import com.powsybl.metrix.integration.data.generator.MetrixOutputData;
 import com.powsybl.metrix.mapping.MappingParameters;
 import com.powsybl.metrix.mapping.TimeSeriesDslLoader;
 import com.powsybl.metrix.mapping.config.ScriptLogConfig;
 import com.powsybl.metrix.mapping.config.TimeSeriesMappingConfig;
-import com.powsybl.timeseries.ReadOnlyTimeSeriesStore;
-import com.powsybl.timeseries.ReadOnlyTimeSeriesStoreCache;
-import com.powsybl.timeseries.RegularTimeSeriesIndex;
-import com.powsybl.timeseries.TimeSeries;
-import com.powsybl.timeseries.TimeSeriesIndex;
-import com.powsybl.timeseries.ast.BinaryOperation;
-import com.powsybl.timeseries.ast.FloatNodeCalc;
-import com.powsybl.timeseries.ast.IntegerNodeCalc;
-import com.powsybl.timeseries.ast.NodeCalc;
-import com.powsybl.timeseries.ast.TimeSeriesNameNodeCalc;
-import com.powsybl.timeseries.ast.UnaryOperation;
+import com.powsybl.timeseries.*;
+import com.powsybl.timeseries.ast.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.threeten.extra.Interval;
@@ -41,6 +32,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import static com.powsybl.metrix.integration.postprocessing.MetrixBranchPostProcessingTimeSeries.createOverloadTimeSeries;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -143,12 +135,16 @@ class MetrixBranchPostProcessingTimeSeriesTest {
     }
 
     private NodeCalc verifyOverload(String branchName, NodeCalc maxThreat, NodeCalc ratingNkExOr, NodeCalc ratingNkOrEx, String overloadPrefix) {
-        NodeCalc outageOverload = BinaryOperation.plus(BinaryOperation.multiply(BinaryOperation.greaterThan(maxThreat, ratingNkExOr),
-                        BinaryOperation.minus(maxThreat, ratingNkExOr)),
-                BinaryOperation.multiply(BinaryOperation.lessThan(maxThreat, UnaryOperation.negative(ratingNkOrEx)),
-                        BinaryOperation.minus(maxThreat, UnaryOperation.negative(ratingNkOrEx))));
-        assertEquals(outageOverload, postProcessingTimeSeries.get(overloadPrefix + branchName));
+        NodeCalc outageOverload = getExpectedOverload(maxThreat, ratingNkExOr, ratingNkOrEx);
+        assertEquals(getExpectedOverload(maxThreat, ratingNkExOr, ratingNkOrEx), postProcessingTimeSeries.get(overloadPrefix + branchName));
         return outageOverload;
+    }
+
+    private NodeCalc getExpectedOverload(NodeCalc maxThreat, NodeCalc ratingNkExOr, NodeCalc ratingNkOrEx) {
+        return BinaryOperation.plus(BinaryOperation.multiply(BinaryOperation.greaterThan(maxThreat, ratingNkExOr),
+                BinaryOperation.minus(maxThreat, ratingNkExOr)),
+            BinaryOperation.multiply(BinaryOperation.lessThan(maxThreat, UnaryOperation.negative(ratingNkOrEx)),
+                BinaryOperation.minus(maxThreat, UnaryOperation.negative(ratingNkOrEx))));
     }
 
     private NodeCalc verifyOutageOverload(String branchName, NodeCalc maxThreat, NodeCalc ratingNkOrEx, NodeCalc ratingNkExOr) {
@@ -270,7 +266,7 @@ class MetrixBranchPostProcessingTimeSeriesTest {
                 "FTDPRA1  FVERGE1  2");
 
         // Verify number of results
-        int expectedResultNb = branchNamesWithAllResult.size() * 8 + 4;
+        int expectedResultNb = branchNamesWithAllResult.size() * 10 + 6;
         assertEquals(expectedResultNb, postProcessingTimeSeries.size());
 
         // Verify results for branches with N and Nk results
@@ -278,6 +274,8 @@ class MetrixBranchPostProcessingTimeSeriesTest {
         branchNamesWithAllResult.forEach(branchName -> assertTrue(postProcessingTimeSeries.containsKey("basecaseOverload_" + branchName)));
         branchNamesWithAllResult.forEach(branchName -> assertTrue(postProcessingTimeSeries.containsKey("outageLoad_" + branchName)));
         branchNamesWithAllResult.forEach(branchName -> assertTrue(postProcessingTimeSeries.containsKey("outageOverload_" + branchName)));
+        branchNamesWithAllResult.forEach(branchName -> assertTrue(postProcessingTimeSeries.containsKey("outageRatingOrEx_" + branchName)));
+        branchNamesWithAllResult.forEach(branchName -> assertTrue(postProcessingTimeSeries.containsKey("outageRatingExOr_" + branchName)));
         branchNamesWithAllResult.forEach(branchName -> assertTrue(postProcessingTimeSeries.containsKey("overallOverload_" + branchName)));
         branchNamesWithAllResult.forEach(branchName -> assertTrue(postProcessingTimeSeries.containsKey("itamLoad_" + branchName)));
         branchNamesWithAllResult.forEach(branchName -> assertTrue(postProcessingTimeSeries.containsKey("itamOverload_" + branchName)));
@@ -292,10 +290,20 @@ class MetrixBranchPostProcessingTimeSeriesTest {
         String branchNameWithNk = "FS.BIS1 FSSV.O1 1";
         assertTrue(postProcessingTimeSeries.containsKey("outageLoad_" + branchNameWithNk));
         assertTrue(postProcessingTimeSeries.containsKey("outageOverload_" + branchNameWithNk));
+        assertTrue(postProcessingTimeSeries.containsKey("outageRatingOrEx_" + branchNameWithNk));
+        assertTrue(postProcessingTimeSeries.containsKey("outageRatingExOr_" + branchNameWithNk));
 
         // Verify single results
         verifySimpleBranchPostProcessing();
         verifyExOrBranchPostProcessing();
         verifySeparatedConfigBranchPostProcessing();
+    }
+
+    @Test
+    void createOverloadTimeSeriesTest() {
+        NodeCalc flow = new TimeSeriesNameNodeCalc("flows");
+        NodeCalc ratingOrExNk = new IntegerNodeCalc(1000);
+        NodeCalc ratingExOrNk = new IntegerNodeCalc(2000);
+        assertEquals(getExpectedOverload(flow, ratingOrExNk, ratingExOrNk), createOverloadTimeSeries(flow, ratingOrExNk, ratingExOrNk));
     }
 }

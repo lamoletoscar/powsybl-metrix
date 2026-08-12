@@ -12,9 +12,9 @@ import com.powsybl.commons.util.StringToIntMapper;
 import com.powsybl.contingency.*;
 import com.powsybl.iidm.modification.tripping.Tripping;
 import com.powsybl.iidm.network.*;
-import com.powsybl.metrix.integration.configuration.MetrixParameters;
 import com.powsybl.metrix.integration.MetrixSubset;
 import com.powsybl.metrix.integration.analysis.MetrixInputAnalysis;
+import com.powsybl.metrix.integration.configuration.MetrixParameters;
 import com.powsybl.metrix.integration.remedials.Remedial;
 import com.powsybl.metrix.integration.remedials.RemedialReader;
 import org.slf4j.Logger;
@@ -834,19 +834,14 @@ public class MetrixNetwork {
     }
 
     public Set<ContingencyElement> getElementsToTrip(Contingency contingency, boolean propagate) {
-
-        if (!propagate) {
-            return new HashSet<>(contingency.getElements());
-        } else {
-
-            Set<ContingencyElement> elementsToTrip = new HashSet<>();
-
+        Set<ContingencyElement> elementsToTrip = new HashSet<>(contingency.getElements());
+        if (propagate) {
             Set<Switch> switchesToOpen = new HashSet<>();
             Set<Terminal> terminalsToDisconnect = new HashSet<>();
 
             for (ContingencyElement element : contingency.getElements()) {
                 if (element.getType() == ContingencyElementType.GENERATOR ||
-                        element.getType() == ContingencyElementType.HVDC_LINE) {
+                    element.getType() == ContingencyElementType.HVDC_LINE) {
                     elementsToTrip.add(element);
                 } else {
                     Tripping modification = element.toModification();
@@ -855,9 +850,9 @@ public class MetrixNetwork {
             }
 
             Set<IdentifiableType> types = EnumSet.of(IdentifiableType.LINE,
-                    IdentifiableType.TWO_WINDINGS_TRANSFORMER,
-                    IdentifiableType.THREE_WINDINGS_TRANSFORMER,
-                    IdentifiableType.HVDC_CONVERTER_STATION);
+                IdentifiableType.TWO_WINDINGS_TRANSFORMER,
+                IdentifiableType.THREE_WINDINGS_TRANSFORMER,
+                IdentifiableType.HVDC_CONVERTER_STATION);
 
             // disconnect equipments and open switches
             for (Switch s : switchesToOpen) {
@@ -865,15 +860,25 @@ public class MetrixNetwork {
                 terminalsToDisconnect.add(nodeBreakerView.getTerminal1(s.getId()));
                 terminalsToDisconnect.add(nodeBreakerView.getTerminal2(s.getId()));
             }
-            terminalsToDisconnect.stream()
-                    .filter(Objects::nonNull)
-                    .forEach(t -> {
-                        Connectable<?> connectable = t.getConnectable();
-                        if (connectable != null && types.contains(connectable.getType())) {
-                            elementsToTrip.add(new BranchContingency(connectable.getId()));
-                        }
-                    });
-            return elementsToTrip;
+            addConnectableFromTerminalToDisconnectToElementsToTrip(terminalsToDisconnect, types, elementsToTrip);
+        }
+        return elementsToTrip;
+    }
+
+    private static void addConnectableFromTerminalToDisconnectToElementsToTrip(Set<Terminal> terminalsToDisconnect, Set<IdentifiableType> types, Set<ContingencyElement> elementsToTrip) {
+        Set<String> addedIds = elementsToTrip.stream()
+            .map(ContingencyElement::getId)
+            .collect(Collectors.toCollection(HashSet::new));
+        for (Terminal terminal : terminalsToDisconnect) {
+            if (terminal != null) {
+                Connectable<?> connectable = terminal.getConnectable();
+                if (connectable != null && types.contains(connectable.getType())) {
+                    String connectableId = connectable.getId();
+                    if (addedIds.add(connectableId)) {
+                        elementsToTrip.add(new BranchContingency(connectableId));
+                    }
+                }
+            }
         }
     }
 }

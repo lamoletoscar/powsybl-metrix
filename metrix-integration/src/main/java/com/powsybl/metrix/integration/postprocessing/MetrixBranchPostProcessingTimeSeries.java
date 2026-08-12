@@ -10,23 +10,14 @@ package com.powsybl.metrix.integration.postprocessing;
 import com.powsybl.metrix.integration.MetrixDataName;
 import com.powsybl.metrix.integration.MetrixDslData;
 import com.powsybl.metrix.integration.MetrixVariable;
-import com.powsybl.metrix.integration.dataGenerator.MetrixOutputData;
-import com.powsybl.metrix.mapping.references.MappingKey;
+import com.powsybl.metrix.integration.data.generator.MetrixOutputData;
 import com.powsybl.metrix.mapping.config.TimeSeriesMappingConfig;
-import com.powsybl.timeseries.ast.BinaryOperation;
-import com.powsybl.timeseries.ast.FloatNodeCalc;
-import com.powsybl.timeseries.ast.IntegerNodeCalc;
-import com.powsybl.timeseries.ast.NodeCalc;
-import com.powsybl.timeseries.ast.TimeSeriesNameNodeCalc;
-import com.powsybl.timeseries.ast.UnaryOperation;
+import com.powsybl.metrix.mapping.references.MappingKey;
+import com.powsybl.timeseries.ast.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 import static com.powsybl.metrix.integration.AbstractMetrix.MAX_THREAT_PREFIX;
 import static com.powsybl.metrix.integration.postprocessing.MetrixPostProcessingTimeSeries.findIdsToProcess;
@@ -40,8 +31,12 @@ public final class MetrixBranchPostProcessingTimeSeries {
 
     public static final String BASECASE_LOAD_PREFIX = "basecaseLoad_";
     public static final String BASECASE_OVERLOAD_PREFIX = "basecaseOverload_";
-    public static final BranchPostProcessingPrefixContainer OUTAGE_PREFIX_CONTAINER = new BranchPostProcessingPrefixContainer("Outage", "outageLoad_", "outageOverload_", "overallOverload_", MAX_THREAT_PREFIX);
-    public static final BranchPostProcessingPrefixContainer ITAM_PREFIX_CONTAINER = new BranchPostProcessingPrefixContainer("ITAM", "itamLoad_", "itamOverload_", "overallItamOverload_", MetrixOutputData.MAX_TMP_THREAT_FLOW);
+    public static final BranchPostProcessingPrefixContainer OUTAGE_PREFIX_CONTAINER = new BranchPostProcessingPrefixContainer("Outage",
+        "outageLoad_", "outageOverload_", "overallOverload_", MAX_THREAT_PREFIX);
+    public static final BranchPostProcessingPrefixContainer ITAM_PREFIX_CONTAINER = new BranchPostProcessingPrefixContainer("ITAM",
+        "itamLoad_", "itamOverload_", "overallItamOverload_", MetrixOutputData.MAX_TMP_THREAT_FLOW);
+    public static final String OUTAGE_RATING_OR_EX_PREFIX = "outageRatingOrEx_";
+    public static final String OUTAGE_RATING_EX_OR_PREFIX = "outageRatingExOr_";
 
     private final MetrixDslData metrixDslData;
     private final TimeSeriesMappingConfig mappingConfig;
@@ -69,6 +64,14 @@ public final class MetrixBranchPostProcessingTimeSeries {
         return postProcessingTimeSeries;
     }
 
+    public static NodeCalc createOverloadTimeSeries(NodeCalc flowTimeSeries, NodeCalc ratingTimeSeriesOrEx, NodeCalc ratingTimeSeriesExOr) {
+        NodeCalc positiveOverloadTimeSeries = BinaryOperation.minus(flowTimeSeries, ratingTimeSeriesOrEx);
+        NodeCalc negativeRatingTimeSeries = UnaryOperation.negative(ratingTimeSeriesExOr);
+        NodeCalc negativeOverloadTimeSeries = BinaryOperation.minus(flowTimeSeries, negativeRatingTimeSeries);
+        return BinaryOperation.plus(BinaryOperation.multiply(BinaryOperation.greaterThan(flowTimeSeries, ratingTimeSeriesOrEx), positiveOverloadTimeSeries),
+            BinaryOperation.multiply(BinaryOperation.lessThan(flowTimeSeries, negativeRatingTimeSeries), negativeOverloadTimeSeries));
+    }
+
     private static NodeCalc createLoadTimeSeries(NodeCalc flowTimeSeries, NodeCalc ratingTimeSeries) {
         return BinaryOperation.multiply(BinaryOperation.div(flowTimeSeries, ratingTimeSeries), new FloatNodeCalc(100));
     }
@@ -84,14 +87,6 @@ public final class MetrixBranchPostProcessingTimeSeries {
         }
     }
 
-    private static NodeCalc createOverloadTimeSeries(NodeCalc flowTimeSeries, NodeCalc ratingTimeSeriesOrEx, NodeCalc ratingTimeSeriesExOr) {
-        NodeCalc positiveOverloadTimeSeries = BinaryOperation.minus(flowTimeSeries, ratingTimeSeriesOrEx);
-        NodeCalc negativeRatingTimeSeries = UnaryOperation.negative(ratingTimeSeriesExOr);
-        NodeCalc negativeOverloadTimeSeries = BinaryOperation.minus(flowTimeSeries, negativeRatingTimeSeries);
-        return BinaryOperation.plus(BinaryOperation.multiply(BinaryOperation.greaterThan(flowTimeSeries, ratingTimeSeriesOrEx), positiveOverloadTimeSeries),
-                BinaryOperation.multiply(BinaryOperation.lessThan(flowTimeSeries, negativeRatingTimeSeries), negativeOverloadTimeSeries));
-    }
-
     private static NodeCalc createOverallOverloadTimeSeries(NodeCalc basecaseOverloadTimeSeries, NodeCalc otherOverloadTimeSeries) {
         return BinaryOperation.plus(UnaryOperation.abs(basecaseOverloadTimeSeries), UnaryOperation.abs(otherOverloadTimeSeries));
     }
@@ -102,22 +97,23 @@ public final class MetrixBranchPostProcessingTimeSeries {
             MetrixVariable threshold = metrixDslData.getBranchMonitoringStatisticsThresholdN(branch);
             if (mappingConfig.getTimeSeriesName(new MappingKey(threshold, branch)) != null) {
                 MetrixVariable thresholdEndOr = threshold == MetrixVariable.THRESHOLD_N ? MetrixVariable.THRESHOLD_N_END_OR : MetrixVariable.ANALYSIS_THRESHOLD_N_END_OR;
-                createBaseCasePostProcessingTimeSeries(branch, threshold, thresholdEndOr);
+                RatingTimeSeriesData ratingTimeSeriesData = new RatingTimeSeriesData(branch, threshold, thresholdEndOr);
+                createBaseCasePostProcessingTimeSeries(branch, ratingTimeSeriesData);
             }
         }
     }
 
     private void createBaseCasePostProcessingTimeSeries(String branch,
-                                                        MetrixVariable thresholdN,
-                                                        MetrixVariable thresholdNEndOr) {
+                                                        RatingTimeSeriesData ratingTimeSeriesData) {
         LOGGER.debug("Creating basecase postprocessing time-series for {}", branch);
         NodeCalc flowTimeSeries = new TimeSeriesNameNodeCalc(MetrixDataName.getNameWithSchema(MetrixOutputData.FLOW_NAME + branch, nullableSchemaName));
-        RatingTimeSeriesData ratingTimeSeriesData = new RatingTimeSeriesData(branch, thresholdN, thresholdNEndOr);
 
         // Basecase load
-        postProcessingTimeSeries.put(MetrixDataName.getNameWithSchema(BASECASE_LOAD_PREFIX + branch, nullableSchemaName), createLoadTimeSeries(flowTimeSeries, ratingTimeSeriesData.ratingTimeSeriesOrEx, ratingTimeSeriesData.ratingTimeSeriesExOr));
+        postProcessingTimeSeries.put(MetrixDataName.getNameWithSchema(BASECASE_LOAD_PREFIX + branch, nullableSchemaName),
+            createLoadTimeSeries(flowTimeSeries, ratingTimeSeriesData.ratingTimeSeriesOrEx, ratingTimeSeriesData.ratingTimeSeriesExOr));
         // Basecase overload
-        postProcessingTimeSeries.put(MetrixDataName.getNameWithSchema(BASECASE_OVERLOAD_PREFIX + branch, nullableSchemaName), createOverloadTimeSeries(flowTimeSeries, ratingTimeSeriesData.ratingTimeSeriesOrEx, ratingTimeSeriesData.ratingTimeSeriesExOr));
+        postProcessingTimeSeries.put(MetrixDataName.getNameWithSchema(BASECASE_OVERLOAD_PREFIX + branch, nullableSchemaName),
+            createOverloadTimeSeries(flowTimeSeries, ratingTimeSeriesData.ratingTimeSeriesOrEx, ratingTimeSeriesData.ratingTimeSeriesExOr));
     }
 
     private void createOutagePostProcessingTimeSeries() {
@@ -126,7 +122,10 @@ public final class MetrixBranchPostProcessingTimeSeries {
             MetrixVariable threshold = metrixDslData.getBranchMonitoringStatisticsThresholdNk(branch);
             if (mappingConfig.getTimeSeriesName(new MappingKey(threshold, branch)) != null) {
                 MetrixVariable thresholdEndOr = threshold == MetrixVariable.THRESHOLD_N1 ? MetrixVariable.THRESHOLD_N1_END_OR : MetrixVariable.ANALYSIS_THRESHOLD_NK_END_OR;
-                createPostProcessingTimeSeries(branch, threshold, thresholdEndOr, OUTAGE_PREFIX_CONTAINER);
+                RatingTimeSeriesData ratingTimeSeriesData = new RatingTimeSeriesData(branch, threshold, thresholdEndOr);
+                createPostProcessingTimeSeries(branch, ratingTimeSeriesData, OUTAGE_PREFIX_CONTAINER);
+                postProcessingTimeSeries.put(OUTAGE_RATING_OR_EX_PREFIX + branch, ratingTimeSeriesData.ratingTimeSeriesOrEx);
+                postProcessingTimeSeries.put(OUTAGE_RATING_EX_OR_PREFIX + branch, ratingTimeSeriesData.ratingTimeSeriesExOr);
             }
         }
     }
@@ -137,29 +136,30 @@ public final class MetrixBranchPostProcessingTimeSeries {
             MetrixVariable threshold = MetrixVariable.THRESHOLD_ITAM;
             if (mappingConfig.getTimeSeriesName(new MappingKey(threshold, branch)) != null) {
                 MetrixVariable thresholdEndOr = MetrixVariable.THRESHOLD_ITAM_END_OR;
-                createPostProcessingTimeSeries(branch, threshold, thresholdEndOr, ITAM_PREFIX_CONTAINER);
+                RatingTimeSeriesData ratingTimeSeriesData = new RatingTimeSeriesData(branch, threshold, thresholdEndOr);
+                createPostProcessingTimeSeries(branch, ratingTimeSeriesData, ITAM_PREFIX_CONTAINER);
             }
         }
     }
 
     private void createPostProcessingTimeSeries(String branch,
-                                                MetrixVariable threshold,
-                                                MetrixVariable thresholdEndOr,
+                                                RatingTimeSeriesData ratingTimeSeriesData,
                                                 BranchPostProcessingPrefixContainer postProcessingPrefixContainer) {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Creating {} postprocessing time-series for {}", postProcessingPrefixContainer.postProcessingType(), branch);
         }
         NodeCalc flowTimeSeries = new TimeSeriesNameNodeCalc(MetrixDataName.getNameWithSchema(postProcessingPrefixContainer.maxThreatPrefix() + branch, nullableSchemaName));
-        RatingTimeSeriesData ratingTimeSeriesData = new RatingTimeSeriesData(branch, threshold, thresholdEndOr);
 
         // load
-        postProcessingTimeSeries.put(MetrixDataName.getNameWithSchema(postProcessingPrefixContainer.loadPrefix() + branch, nullableSchemaName), createLoadTimeSeries(flowTimeSeries, ratingTimeSeriesData.ratingTimeSeriesOrEx, ratingTimeSeriesData.ratingTimeSeriesExOr));
+        postProcessingTimeSeries.put(MetrixDataName.getNameWithSchema(postProcessingPrefixContainer.loadPrefix() + branch, nullableSchemaName),
+            createLoadTimeSeries(flowTimeSeries, ratingTimeSeriesData.ratingTimeSeriesOrEx, ratingTimeSeriesData.ratingTimeSeriesExOr));
         // overload
         NodeCalc overloadTimeSeries = createOverloadTimeSeries(flowTimeSeries, ratingTimeSeriesData.ratingTimeSeriesOrEx, ratingTimeSeriesData.ratingTimeSeriesExOr);
         postProcessingTimeSeries.put(MetrixDataName.getNameWithSchema(postProcessingPrefixContainer.overloadPrefix() + branch, nullableSchemaName), overloadTimeSeries);
         NodeCalc basecaseOverLoadTimeSeries = postProcessingTimeSeries.get(BASECASE_OVERLOAD_PREFIX + branch);
         if (!Objects.isNull(basecaseOverLoadTimeSeries)) {
-            postProcessingTimeSeries.put(MetrixDataName.getNameWithSchema(postProcessingPrefixContainer.overallOverloadPrefix() + branch, nullableSchemaName), createOverallOverloadTimeSeries(basecaseOverLoadTimeSeries, overloadTimeSeries));
+            postProcessingTimeSeries.put(MetrixDataName.getNameWithSchema(postProcessingPrefixContainer.overallOverloadPrefix() + branch, nullableSchemaName),
+                createOverallOverloadTimeSeries(basecaseOverLoadTimeSeries, overloadTimeSeries));
         }
     }
 
