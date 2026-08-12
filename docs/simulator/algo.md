@@ -1224,8 +1224,8 @@ détaillées dans {ref}`micro-it-choix-solveur`.
 ##### Ré-estimation des pertes
 
 Après convergence, METRIX peut optionnellement ré-estimer les pertes réseau sur la base de la distribution finale
-des flux. Si les pertes ré-estimées diffèrent significativement du taux de pertes supposé, l'ensemble du calcul est
-relancé avec le taux de pertes mis à jour. Cette boucle est contrôlée par le paramètre `RELPERTE` (désactivée
+des flux. Si l'écart entre les pertes ré-estimées et les pertes supposées dépasse le seuil `SEUILPER` (500 MW par
+défaut), l'ensemble du calcul est relancé avec le taux de pertes mis à jour. Cette boucle est contrôlée par le paramètre `RELPERTE` (désactivée
 par défaut). Quand elle est activée, elle s'exécute au maximum le nombre de fois configuré.
 
 (micro-it-implementation)=
