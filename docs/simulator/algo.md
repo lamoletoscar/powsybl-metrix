@@ -1045,91 +1045,11 @@ ne soit violée, ni sur le réseau intact (situation N), ni après une contingen
 
 Description d'une **micro-itération** :
 
+::::{container} diagram-card
 ```{raw} html
-<div class="diagram-card">
-    <svg width="100%" viewBox="0 0 680 660" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-            <marker id="b1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </marker>
-        </defs>
-
-        <text class="th" x="340" y="28" text-anchor="middle">Optimisation itérative sous contraintes de sûreté</text>
-
-        <!-- Critères d'arrêt -->
-        <g class="fill-gray">
-            <rect x="190" y="50" width="300" height="44" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="72" text-anchor="middle" dominant-baseline="central">Critères d'arrêt</text>
-        </g>
-        <line x1="340" y1="94" x2="340" y2="122" class="arr" marker-end="url(#b1)"/>
-        <line x1="490" y1="72" x2="560" y2="72" class="arr" marker-end="url(#b1)" stroke="var(--diag-red)"/>
-        <text class="ts" x="610" y="68" text-anchor="middle" style="fill:var(--diag-red)">Max contraintes</text>
-        <text class="ts" x="610" y="84" text-anchor="middle" style="fill:var(--diag-red)">ou max itérations</text>
-
-        <!-- Optimiser -->
-        <g class="fill-purple">
-            <rect x="170" y="122" width="340" height="60" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="144" text-anchor="middle" dominant-baseline="central">Optimiser le plan de production</text>
-            <text class="ts" x="340" y="164" text-anchor="middle" dominant-baseline="central">Minimiser le coût de redispatching sous contraintes connues</text>
-        </g>
-        <line x1="340" y1="182" x2="340" y2="210" class="arr" marker-end="url(#b1)"/>
-
-        <!-- Calculer les flux -->
-        <g class="fill-teal">
-            <rect x="170" y="210" width="340" height="68" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="232" text-anchor="middle" dominant-baseline="central">Calculer les flux réseau</text>
-            <text class="ts" x="340" y="250" text-anchor="middle" dominant-baseline="central">Load-flow DC → transits de puissance active</text>
-            <text class="ts" x="340" y="264" text-anchor="middle" dominant-baseline="central">sur toutes les lignes</text>
-        </g>
-        <line x1="340" y1="278" x2="340" y2="306" class="arr" marker-end="url(#b1)"/>
-
-        <!-- Vérifier les critères de sûreté -->
-        <g class="fill-coral">
-            <rect x="170" y="306" width="340" height="80" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="330" text-anchor="middle" dominant-baseline="central">Vérifier les critères de sûreté</text>
-            <text class="ts" x="340" y="350" text-anchor="middle" dominant-baseline="central">Pour chaque élément surveillé :</text>
-            <text class="ts" x="340" y="366" text-anchor="middle" dominant-baseline="central">transit vs limite thermique en N, puis en N-k</text>
-        </g>
-        <line x1="340" y1="386" x2="340" y2="414" class="arr" marker-end="url(#b1)"/>
-
-        <!-- Violation détectée ? -->
-        <g class="fill-amber">
-            <rect x="190" y="414" width="300" height="44" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="436" text-anchor="middle" dominant-baseline="central">Violation détectée ?</text>
-        </g>
-
-        <!-- Branch Oui → Ajouter contraintes (gauche) -->
-        <path d="M290 458 L190 486" class="arr" fill="none" marker-end="url(#b1)"/>
-        <text class="ts" x="210" y="476" text-anchor="middle">Oui</text>
-
-        <!-- Branch Non → Dispatch sûr trouvé (droite) -->
-        <path d="M390 458 L490 486" class="arr" fill="none" marker-end="url(#b1)" stroke="var(--diag-green)"/>
-        <text class="ts" x="470" y="476" text-anchor="middle" style="fill:var(--diag-green)">Non</text>
-
-        <!-- Ajouter contraintes (gauche, bleu) -->
-        <g class="fill-blue">
-            <rect x="40" y="486" width="300" height="80" rx="8" stroke-width="0.5"/>
-            <text class="th" x="190" y="508" text-anchor="middle" dominant-baseline="central">Ajouter les contraintes violées</text>
-            <text class="ts" x="190" y="528" text-anchor="middle" dominant-baseline="central">Le cas échéant : actions curatives</text>
-            <text class="ts" x="190" y="544" text-anchor="middle" dominant-baseline="central">(topologie, redispatching curatif)</text>
-        </g>
-
-        <!-- Dispatch sûr trouvé (droite, teal) -->
-        <g class="fill-teal">
-            <rect x="340" y="486" width="300" height="80" rx="8" stroke-width="0.5"/>
-            <text class="th" x="490" y="508" text-anchor="middle" dominant-baseline="central">Dispatch sûr trouvé</text>
-            <text class="ts" x="490" y="528" text-anchor="middle" dominant-baseline="central">Convergence atteinte</text>
-            <text class="ts" x="490" y="544" text-anchor="middle" dominant-baseline="central">Résultats en sortie</text>
-        </g>
-
-        <!-- Boucle de retour : Ajouter contraintes → Critères d'arrêt -->
-        <path d="M190 566 L190 612 L20 612 L20 72 L190 72" fill="none" class="arr" stroke-width="1.5" marker-end="url(#b1)" stroke-dasharray="6 4"/>
-        <text class="ts" x="28" y="312" text-anchor="start">↑ Ré-optimiser</text>
-        <text class="ts" x="28" y="328" text-anchor="start">avec nouvelles</text>
-        <text class="ts" x="28" y="344" text-anchor="start">contraintes</text>
-    </svg>
-</div>
+:file: img/micro_it_boucle.svg
 ```
+::::
 
 ---
 
@@ -1138,72 +1058,18 @@ Description d'une **micro-itération** :
 Chaque élément surveillé (ligne, transformateur ou section) se voit attribuer des **limites thermiques** qui dépendent du régime d'exploitation.
 Ces limites représentent le transit de puissance active maximal que l'élément peut supporter selon différents horizons temporels.
 
+::::{container} diagram-card
 ```{raw} html
-<div class="diagram-card">
-    <svg width="100%" viewBox="0 0 680 330" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-            <marker id="b2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </marker>
-        </defs>
-
-        <text class="th" x="340" y="24" text-anchor="middle">Hiérarchie des limites thermiques pour un élément surveillé</text>
-
-        <!-- N -->
-        <g class="fill-teal">
-            <rect x="40" y="50" width="130" height="70" rx="8" stroke-width="0.5"/>
-            <text class="th" x="105" y="72" text-anchor="middle" dominant-baseline="central">Limite N</text>
-            <text class="ts" x="105" y="92" text-anchor="middle" dominant-baseline="central">Régime permanent</text>
-            <text class="ts" x="105" y="106" text-anchor="middle" dominant-baseline="central">(permanent)</text>
-        </g>
-        <line x1="170" y1="85" x2="198" y2="85" class="arr" marker-end="url(#b2)"/>
-
-        <!-- N-1 -->
-        <g class="fill-blue">
-            <rect x="198" y="50" width="130" height="70" rx="8" stroke-width="0.5"/>
-            <text class="th" x="263" y="72" text-anchor="middle" dominant-baseline="central">Limite N-1</text>
-            <text class="ts" x="263" y="92" text-anchor="middle" dominant-baseline="central">Post-contingence</text>
-            <text class="ts" x="263" y="106" text-anchor="middle" dominant-baseline="central">(simple)</text>
-        </g>
-        <line x1="328" y1="85" x2="356" y2="85" class="arr" marker-end="url(#b2)"/>
-
-        <!-- N-k -->
-        <g class="fill-purple">
-            <rect x="356" y="50" width="130" height="70" rx="8" stroke-width="0.5"/>
-            <text class="th" x="421" y="72" text-anchor="middle" dominant-baseline="central">Limite N-k</text>
-            <text class="ts" x="421" y="92" text-anchor="middle" dominant-baseline="central">Post-contingence</text>
-            <text class="ts" x="421" y="106" text-anchor="middle" dominant-baseline="central">(complexe)</text>
-        </g>
-        <line x1="486" y1="85" x2="514" y2="85" class="arr" marker-end="url(#b2)"/>
-
-        <!-- ITAM -->
-        <g class="fill-amber">
-            <rect x="514" y="50" width="130" height="70" rx="8" stroke-width="0.5"/>
-            <text class="th" x="579" y="72" text-anchor="middle" dominant-baseline="central">Limite ITAM</text>
-            <text class="ts" x="579" y="92" text-anchor="middle" dominant-baseline="central">Avant action</text>
-            <text class="ts" x="579" y="106" text-anchor="middle" dominant-baseline="central">curative</text>
-        </g>
-
-        <!-- Explanation boxes -->
-        <g class="fill-gray">
-            <rect x="40" y="200" width="290" height="56" rx="8" stroke-width="0.5"/>
-            <text class="th" x="185" y="220" text-anchor="middle" dominant-baseline="central">Limites symétriques</text>
-            <text class="ts" x="185" y="240" text-anchor="middle" dominant-baseline="central">Même limite quel que soit le sens du flux</text>
-        </g>
-
-        <g class="fill-gray">
-            <rect x="350" y="200" width="290" height="56" rx="8" stroke-width="0.5"/>
-            <text class="th" x="495" y="220" text-anchor="middle" dominant-baseline="central">Limites asymétriques</text>
-            <text class="ts" x="495" y="240" text-anchor="middle" dominant-baseline="central">Limites différentes selon le sens du flux</text>
-        </g>
-
-        <text class="ts" x="340" y="290" text-anchor="middle">Toutes les limites peuvent être redéfinies par variante, permettant des calibrages thermiques spécifiques au scénario.</text>
-    </svg>
-    <div class="legend">
-        La limite N s'applique en conditions normales d'exploitation (régime permanent). Les limites N-1 et N-k s'appliquent après une contingence et sont généralement plus élevées, reflétant la capacité thermique à court terme de l'élément. La limite ITAM (avant action curative) est la plus permissive : elle représente le transit que l'élément peut supporter pendant la période entre la contingence et l'exécution de l'action curative.
-    </div>
-</div>
+:file: img/micro_it_seuils.svg
 ```
+
+:::{container} legend
+La limite N s'applique en conditions normales d'exploitation (régime permanent). Les limites N-1 et N-k
+s'appliquent après une contingence et sont généralement plus élevées, reflétant la capacité thermique à court
+terme de l'élément. La limite ITAM (avant action curative) est la plus permissive : elle représente le transit
+que l'élément peut supporter pendant la période entre la contingence et l'exécution de l'action curative.
+:::
+::::
 
 Lors de la vérification de sûreté, METRIX sélectionne la limite appropriée en fonction
 du contexte : si aucune contingence n'est évaluée, la limite N s'applique. Si une contingence
@@ -1217,81 +1083,17 @@ refléter la capacité de surcharge transitoire avant l'exécution de l'action c
 À chaque micro-itération, après que l'optimiseur a produit un dispatch de production, METRIX vérifie
 qu'aucun élément surveillé ne dépasse sa limite thermique. Cette vérification est effectuée en deux étapes.
 
+::::{container} diagram-card
 ```{raw} html
-<div class="diagram-card">
-    <svg width="100%" viewBox="0 0 680 580" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-            <marker id="b3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </marker>
-        </defs>
-
-        <text class="th" x="340" y="24" text-anchor="middle">Scan de sûreté en deux étapes</text>
-
-        <!-- Stage 1 -->
-        <rect class="dashed-zone" x="30" y="44" width="620" height="150" rx="16"/>
-        <text class="th" x="50" y="66">Étape 1 — Réseau intact (N)</text>
-
-        <g class="fill-teal">
-            <rect x="50" y="82" width="240" height="44" rx="8" stroke-width="0.5"/>
-            <text class="th" x="170" y="104" text-anchor="middle" dominant-baseline="central">Calculer le transit</text>
-        </g>
-        <line x1="290" y1="104" x2="318" y2="104" class="arr" marker-end="url(#b3)"/>
-        <g class="fill-teal">
-            <rect x="318" y="82" width="164" height="44" rx="8" stroke-width="0.5"/>
-            <text class="th" x="400" y="104" text-anchor="middle" dominant-baseline="central">Comparer à la limite N</text>
-        </g>
-        <line x1="482" y1="104" x2="510" y2="104" class="arr" marker-end="url(#b3)"/>
-        <g class="fill-coral">
-            <rect x="510" y="82" width="120" height="44" rx="8" stroke-width="0.5"/>
-            <text class="th" x="570" y="104" text-anchor="middle" dominant-baseline="central">Surcharge ?</text>
-        </g>
-
-        <text class="ts" x="50" y="152" text-anchor="start">Pour chaque élément surveillé, en utilisant le résultat du load-flow DC.</text>
-        <text class="ts" x="50" y="168" text-anchor="start">Une surcharge en N est enregistrée et masquera les surcharges N-k plus petites sur le même élément.</text>
-
-        <!-- Stage 2 -->
-        <rect class="dashed-zone" x="30" y="210" width="620" height="370" rx="16"/>
-        <text class="th" x="50" y="232">Étape 2 — Post-contingence (N-k)</text>
-
-        <g class="fill-blue">
-            <rect x="50" y="248" width="240" height="56" rx="8" stroke-width="0.5"/>
-            <text class="th" x="170" y="268" text-anchor="middle" dominant-baseline="central">Estimer le transit post-contingence</text>
-            <text class="ts" x="170" y="286" text-anchor="middle" dominant-baseline="central">(via facteurs de sensibilité)</text>
-        </g>
-        <line x1="290" y1="276" x2="330" y2="276" class="arr" marker-end="url(#b3)"/>
-        <g class="fill-blue">
-            <rect x="330" y="248" width="140" height="56" rx="8" stroke-width="0.5"/>
-            <text class="th" x="400" y="268" text-anchor="middle" dominant-baseline="central">Comparer à la limite</text>
-            <text class="ts" x="400" y="286" text-anchor="middle" dominant-baseline="central">N-1 / N-k / ITAM</text>
-        </g>
-        <line x1="470" y1="276" x2="510" y2="276" class="arr" marker-end="url(#b3)"/>
-        <g class="fill-coral">
-            <rect x="510" y="248" width="120" height="56" rx="8" stroke-width="0.5"/>
-            <text class="th" x="570" y="268" text-anchor="middle" dominant-baseline="central">Surcharge ?</text>
-            <text class="ts" x="570" y="286" text-anchor="middle" dominant-baseline="central">Appliquer les filtres</text>
-        </g>
-
-        <text class="ts" x="50" y="332" text-anchor="start">Pour chaque contingence × chaque élément surveillé. Les transits post-contingence sont estimés</text>
-        <text class="ts" x="50" y="348" text-anchor="start">via les facteurs de sensibilité (PTDF/LODF), évitant un load-flow complet par contingence.</text>
-
-        <text class="th" x="50" y="386">Règles de filtrage (une surcharge est écartée si) :</text>
-        <text class="ts" x="50" y="406" text-anchor="start">• L'incident a déjà ses parades activées</text>
-        <text class="ts" x="58" y="420" text-anchor="start">(sans ITAM : ignoré ; avec ITAM : détection sur seuil avant-curatif)</text>
-        <text class="ts" x="50" y="440" text-anchor="start">• La contrainte a déjà été ajoutée dans une micro-itération précédente</text>
-        <text class="ts" x="58" y="454" text-anchor="start">(modes avec variables d'écart uniquement)</text>
-        <text class="ts" x="50" y="474" text-anchor="start">• Aucun levier d'action n'est mobilisable</text>
-        <text class="ts" x="58" y="488" text-anchor="start">(modes avec variables d'écart uniquement)</text>
-        <text class="ts" x="50" y="508" text-anchor="start">• La surcharge est inférieure à la tolérance numérique</text>
-        <text class="ts" x="50" y="528" text-anchor="start">• La surcharge est plus petite que la surcharge N sur le même élément</text>
-
-        <text class="ts" x="50" y="556" text-anchor="start">Les menaces les plus sévères par élément sont enregistrées pour les résultats.</text>
-    </svg>
-    <div class="legend">
-        Les transits post-contingence ne sont pas calculés en exécutant un load-flow complet par contingence. METRIX utilise des facteurs de sensibilité linéaires (PTDF et LODF) pré-calculés à partir de la Jacobienne du réseau. Cela rend le scan N-k traitable même pour des milliers de contingences et des centaines d'éléments surveillés.
-    </div>
-</div>
+:file: img/micro_it_scan_surete.svg
 ```
+
+:::{container} legend
+Les transits post-contingence ne sont pas calculés en exécutant un load-flow complet par contingence. METRIX
+utilise des facteurs de sensibilité linéaires (PTDF et LODF) pré-calculés à partir de la Jacobienne du réseau.
+Cela rend le scan N-k traitable même pour des milliers de contingences et des centaines d'éléments surveillés.
+:::
+::::
 
 ---
 
@@ -1300,80 +1102,19 @@ qu'aucun élément surveillé ne dépasse sa limite thermique. Cette vérificati
 Lorsqu'une surcharge est détectée sur une contingence, METRIX peut mobiliser deux catégories
 d'actions correctives, en plus du redispatching préventif.
 
+::::{container} diagram-card
 ```{raw} html
-<div class="diagram-card">
-    <svg width="100%" viewBox="0 0 680 470" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-            <marker id="b4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </marker>
-        </defs>
-
-        <text class="th" x="340" y="24" text-anchor="middle">Mécanismes d'actions correctives</text>
-
-        <!-- Preventive -->
-        <g class="fill-teal">
-            <rect x="40" y="50" width="600" height="60" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="72" text-anchor="middle" dominant-baseline="central">Actions préventives (appliquées avant toute contingence)</text>
-            <text class="ts" x="340" y="92" text-anchor="middle" dominant-baseline="central">Redispatching de production · Réglage des transformateurs déphaseurs · Consigne HVDC · Délestage</text>
-        </g>
-
-        <line x1="340" y1="110" x2="340" y2="138" class="arr" marker-end="url(#b4)"/>
-        <text class="ts" x="346" y="130" text-anchor="start">Si la surcharge persiste en N-k</text>
-
-        <!-- Curative split -->
-        <rect class="dashed-zone" x="30" y="138" width="300" height="190" rx="12"/>
-        <text class="th" x="50" y="160">Actions curatives</text>
-        <text class="ts" x="50" y="176">(appliquées après la contingence)</text>
-
-        <g class="fill-blue">
-            <rect x="42" y="192" width="276" height="28" rx="8" stroke-width="0.5"/>
-            <text class="th" x="180" y="206" text-anchor="middle" dominant-baseline="central">Redispatching de production</text>
-        </g>
-        <g class="fill-blue">
-            <rect x="42" y="228" width="276" height="28" rx="8" stroke-width="0.5"/>
-            <text class="th" x="180" y="242" text-anchor="middle" dominant-baseline="central">Transformateur déphaseur</text>
-        </g>
-        <g class="fill-blue">
-            <rect x="42" y="264" width="276" height="28" rx="8" stroke-width="0.5"/>
-            <text class="th" x="180" y="278" text-anchor="middle" dominant-baseline="central">Consigne HVDC</text>
-        </g>
-        <g class="fill-blue">
-            <rect x="42" y="300" width="276" height="28" rx="8" stroke-width="0.5"/>
-            <text class="th" x="180" y="314" text-anchor="middle" dominant-baseline="central">Délestage</text>
-        </g>
-
-        <rect class="dashed-zone" x="350" y="138" width="300" height="190" rx="12"/>
-        <text class="th" x="370" y="160">Parades topologiques</text>
-        <text class="ts" x="370" y="176">(manœuvres réseau après contingence)</text>
-
-        <g class="fill-purple">
-            <rect x="362" y="192" width="276" height="28" rx="8" stroke-width="0.5"/>
-            <text class="th" x="500" y="206" text-anchor="middle" dominant-baseline="central">Ouvrir une ligne ou un couplage</text>
-        </g>
-        <g class="fill-purple">
-            <rect x="362" y="228" width="276" height="28" rx="8" stroke-width="0.5"/>
-            <text class="th" x="500" y="242" text-anchor="middle" dominant-baseline="central">Fermer un couplage</text>
-        </g>
-        <g class="fill-purple">
-            <rect x="362" y="264" width="276" height="62" rx="8" stroke-width="0.5"/>
-            <text class="th" x="500" y="280" text-anchor="middle" dominant-baseline="central">Parade « ne rien faire »</text>
-            <text class="ts" x="500" y="298" text-anchor="middle" dominant-baseline="central">(actions curatives seules,</text>
-            <text class="ts" x="500" y="312" text-anchor="middle" dominant-baseline="central">pas de changement topologique)</text>
-        </g>
-
-        <g class="fill-gray">
-            <rect x="40" y="350" width="600" height="80" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="374" text-anchor="middle" dominant-baseline="central">L'optimiseur sélectionne la combinaison de moindre coût</text>
-            <text class="ts" x="340" y="394" text-anchor="middle" dominant-baseline="central">Exactement une parade est activée par contingence (modélisée comme choix binaire).</text>
-            <text class="ts" x="340" y="412" text-anchor="middle" dominant-baseline="central">Les actions curatives sont attachées à la parade choisie.</text>
-        </g>
-    </svg>
-    <div class="legend">
-        Pour une contingence donnée, l'optimiseur doit choisir exactement une parade topologique (incluant l'option « ne rien faire »). Les actions curatives (production, HVDC, déphaseurs) opèrent dans la topologie post-parade choisie. Le coût d'activation d'une parade est proportionnel à la probabilité de la contingence et au nombre de contraintes associées, de sorte que les parades ne sont utilisées que lorsque les actions préventives seules sont insuffisantes.
-    </div>
-</div>
+:file: img/micro_it_actions_correctives.svg
 ```
+
+:::{container} legend
+Pour une contingence donnée, l'optimiseur doit choisir exactement une parade topologique (incluant l'option «
+ne rien faire »). Les actions curatives (production, HVDC, déphaseurs) opèrent dans la topologie post-parade
+choisie. Le coût d'activation d'une parade est proportionnel à la probabilité de la contingence et au nombre
+de contraintes associées, de sorte que les parades ne sont utilisées que lorsque les actions préventives
+seules sont insuffisantes.
+:::
+::::
 
 ##### Mécanisme ITAM
 
@@ -1422,64 +1163,19 @@ mécanisme est neutralisé sur les cinq points ci-dessus.
 
 METRIX propose quatre modes de calcul, chacun correspondant à un niveau d'optimisation différent.
 
+::::{container} diagram-card
 ```{raw} html
-<div class="diagram-card">
-    <svg width="100%" viewBox="0 0 680 380" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-            <marker id="b5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </marker>
-        </defs>
-
-        <text class="th" x="340" y="24" text-anchor="middle">Modes de calcul</text>
-
-        <!-- LOAD_FLOW -->
-        <g class="fill-gray">
-            <rect x="40" y="50" width="290" height="70" rx="8" stroke-width="0.5"/>
-            <text class="th" x="185" y="72" text-anchor="middle" dominant-baseline="central">Load-flow</text>
-            <text class="ts" x="185" y="90" text-anchor="middle" dominant-baseline="central">Calcul des flux uniquement, pas d'optimisation.</text>
-            <text class="ts" x="185" y="106" text-anchor="middle" dominant-baseline="central">Itération unique, signale les surcharges.</text>
-        </g>
-
-        <!-- OPF_WITHOUT_REDISPATCH -->
-        <g class="fill-teal">
-            <rect x="350" y="50" width="290" height="70" rx="8" stroke-width="0.5"/>
-            <text class="th" x="495" y="72" text-anchor="middle" dominant-baseline="central">OPF sans redispatching</text>
-            <text class="ts" x="495" y="90" text-anchor="middle" dominant-baseline="central">HVDC et déphaseurs uniquement.</text>
-            <text class="ts" x="495" y="106" text-anchor="middle" dominant-baseline="central">Pas d'ajustement de production autorisé.</text>
-        </g>
-
-        <!-- OPF -->
-        <g class="fill-blue">
-            <rect x="40" y="140" width="290" height="70" rx="8" stroke-width="0.5"/>
-            <text class="th" x="185" y="162" text-anchor="middle" dominant-baseline="central">OPF (complet)</text>
-            <text class="ts" x="185" y="180" text-anchor="middle" dominant-baseline="central">Toutes les actions préventives et curatives.</text>
-            <text class="ts" x="185" y="196" text-anchor="middle" dominant-baseline="central">Doit trouver une solution réalisable.</text>
-        </g>
-
-        <!-- OPF_WITH_OVERLOAD -->
-        <g class="fill-amber">
-            <rect x="350" y="140" width="290" height="70" rx="8" stroke-width="0.5"/>
-            <text class="th" x="495" y="162" text-anchor="middle" dominant-baseline="central">OPF avec tolérance de surcharge</text>
-            <text class="ts" x="495" y="180" text-anchor="middle" dominant-baseline="central">Comme l'OPF, mais les surcharges</text>
-            <text class="ts" x="495" y="196" text-anchor="middle" dominant-baseline="central">résiduelles sont pénalisées, pas interdites.</text>
-        </g>
-
-        <!-- Capabilities summary -->
-        <g class="fill-gray">
-            <rect x="40" y="240" width="600" height="110" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="264" text-anchor="middle" dominant-baseline="central">Capacités par mode</text>
-            <text class="ts" x="60" y="288" text-anchor="start">Load-flow : calcul des flux uniquement — pas de boucle itérative</text>
-            <text class="ts" x="60" y="306" text-anchor="start">OPF sans redispatching : HVDC + déphaseurs + variables d'écart (pas de production)</text>
-            <text class="ts" x="60" y="324" text-anchor="start">OPF (complet) : toutes les actions préventives + curatives, parades, redispatching de production</text>
-            <text class="ts" x="60" y="342" text-anchor="start">OPF avec surcharge : comme l'OPF, avec des variables d'écart permettant les surcharges résiduelles</text>
-        </g>
-    </svg>
-    <div class="legend">
-        En mode Load-flow, un seul passage est effectué (pas de boucle itérative). En OPF sans redispatching, la production est fixée ; seuls les réglages HVDC et déphaseurs sont optimisés, et les surcharges sont signalées via des variables d'écart. Le mode OPF complet utilise la boucle de micro-itération complète avec tous les moyens d'action disponibles. Le mode OPF avec tolérance de surcharge est identique à l'OPF complet sauf que les surcharges insolubles produisent une solution pénalisée plutôt qu'un échec.
-    </div>
-</div>
+:file: img/micro_it_modes_calcul.svg
 ```
+
+:::{container} legend
+En mode Load-flow, un seul passage est effectué (pas de boucle itérative). En OPF sans redispatching, la
+production est fixée ; seuls les réglages HVDC et déphaseurs sont optimisés, et les surcharges sont signalées
+via des variables d'écart. Le mode OPF complet utilise la boucle de micro-itération complète avec tous les
+moyens d'action disponibles. Le mode OPF avec tolérance de surcharge est identique à l'OPF complet sauf que
+les surcharges insolubles produisent une solution pénalisée plutôt qu'un échec.
+:::
+::::
 
 ---
 
@@ -1529,143 +1225,17 @@ Chaque micro-itération suit un pipeline séquentiel : résolution du LP, recalc
 des contraintes violées, puis ajout de ces contraintes au problème. La boucle s'arrête quand plus aucune
 contrainte n'est détectée, ou quand un des critères d'arrêt est atteint.
 
+::::{container} diagram-card
 ```{raw} html
-<div class="diagram-card">
-    <svg width="100%" viewBox="0 0 680 780" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-            <marker id="a1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </marker>
-        </defs>
-
-        <text class="th" x="340" y="28" text-anchor="middle">
-            Boucle de micro-itération (while existe_contrainte_active)
-        </text>
-
-        <!-- Tests d'arrêt -->
-        <g class="fill-gray">
-            <rect x="190" y="50" width="300" height="52" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="70" text-anchor="middle" dominant-baseline="central">Tests d'arrêt</text>
-            <text class="ts" x="340" y="88" text-anchor="middle" dominant-baseline="central">
-                Max contraintes? Max iterations?
-            </text>
-        </g>
-        <line x1="340" y1="102" x2="340" y2="130" class="arr" marker-end="url(#a1)"/>
-        <line x1="490" y1="76" x2="560" y2="76" class="arr" marker-end="url(#a1)" stroke="var(--diag-red)"/>
-        <text class="ts" x="590" y="72" text-anchor="middle" style="fill: var(--diag-red)">STOP</text>
-        <text class="ts" x="590" y="88" text-anchor="middle" style="fill: var(--diag-red)">erreur</text>
-
-        <!-- Appel solveur -->
-        <g class="fill-purple">
-            <rect x="190" y="130" width="300" height="52" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="148" text-anchor="middle" dominant-baseline="central">Appel solveur LP/MIP</text>
-            <text class="ts" x="340" y="168" text-anchor="middle" dominant-baseline="central">
-                PneSolveur (skip si it. 1 ou 0 contrainte)
-            </text>
-        </g>
-        <line x1="340" y1="182" x2="340" y2="210" class="arr" marker-end="url(#a1)"/>
-        <text class="ts" x="60" y="148" text-anchor="start">Simplexe</text>
-        <text class="ts" x="60" y="164" text-anchor="start">ou PNE (B&amp;B)</text>
-        <line class="leader" x1="110" y1="170" x2="188" y2="168"/>
-
-        <!-- Mise à jour second membre -->
-        <g class="fill-teal">
-            <rect x="190" y="210" width="300" height="52" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="228" text-anchor="middle" dominant-baseline="central">Mise à jour second membre</text>
-            <text class="ts" x="340" y="248" text-anchor="middle" dominant-baseline="central">
-                Injections nodales → θ (phases)
-            </text>
-        </g>
-        <line x1="340" y1="262" x2="340" y2="290" class="arr" marker-end="url(#a1)"/>
-        <text class="ts" x="60" y="242" text-anchor="start">Résolution LU</text>
-        <text class="ts" x="60" y="258" text-anchor="start">J⁻¹ · b = θ</text>
-        <line class="leader" x1="115" y1="258" x2="188" y2="248"/>
-
-        <!-- Détection de contraintes -->
-        <g class="fill-coral">
-            <rect x="170" y="290" width="340" height="100" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="316" text-anchor="middle" dominant-baseline="central">Détection de contraintes</text>
-            <text class="ts" x="340" y="338" text-anchor="middle" dominant-baseline="central">
-                Scan en N : elementsASurveillerN_
-            </text>
-            <text class="ts" x="340" y="356" text-anchor="middle" dominant-baseline="central">
-                Scan en N-k : incidents × elementsASurveillerNk_
-            </text>
-            <text class="ts" x="340" y="374" text-anchor="middle" dominant-baseline="central">
-                Filtres + enregistrement menaces
-            </text>
-        </g>
-        <line x1="340" y1="390" x2="340" y2="420" class="arr" marker-end="url(#a1)"/>
-        <line x1="510" y1="340" x2="560" y2="340" class="arr" marker-end="url(#a1)" stroke="var(--diag-green)"/>
-        <text class="ts" x="600" y="334" text-anchor="middle" style="fill: var(--diag-green)">Mode LF</text>
-        <text class="ts" x="600" y="350" text-anchor="middle" style="fill: var(--diag-green)">→ break</text>
-
-        <!-- Ajout des contraintes au LP -->
-        <g class="fill-blue">
-            <rect x="170" y="420" width="340" height="118" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="444" text-anchor="middle" dominant-baseline="central">
-                Ajout des contraintes au LP
-            </text>
-            <text class="ts" x="340" y="466" text-anchor="middle" dominant-baseline="central">
-                Dédoublonnage (choixContraintesAajouter)
-            </text>
-            <text class="ts" x="340" y="484" text-anchor="middle" dominant-baseline="central">
-                ajoutContrainte → coefficients matrice
-            </text>
-            <text class="ts" x="340" y="502" text-anchor="middle" dominant-baseline="central">
-                Activation parades + variables entières
-            </text>
-            <text class="ts" x="340" y="520" text-anchor="middle" dominant-baseline="central">
-                ecrireCoupeTransit → Tmin ≤ Σcoefs·x ≤ Tmax
-            </text>
-        </g>
-        <line x1="340" y1="538" x2="340" y2="568" class="arr" marker-end="url(#a1)"/>
-
-        <!-- Vérifications optionnelles -->
-        <g class="fill-gray">
-            <rect x="190" y="568" width="300" height="52" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="586" text-anchor="middle" dominant-baseline="central">Vérifications optionnelles</text>
-            <text class="ts" x="340" y="606" text-anchor="middle" dominant-baseline="central">
-                compareLoadFlowReport, check debug
-            </text>
-        </g>
-        <line x1="340" y1="620" x2="340" y2="648" class="arr" marker-end="url(#a1)"/>
-
-        <!-- Contraintes ajoutées ? -->
-        <g class="fill-amber">
-            <rect x="210" y="648" width="260" height="44" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="670" text-anchor="middle" dominant-baseline="central">existe_contrainte_active ?</text>
-        </g>
-
-        <!-- Branche Oui → boucle (gauche) -->
-        <path d="M270 692 L190 720" class="arr" fill="none" marker-end="url(#a1)"/>
-        <text class="ts" x="206" y="712" text-anchor="middle">Oui</text>
-
-        <!-- Branche Non → Fin (droite) -->
-        <path d="M410 692 L490 720" class="arr" fill="none" marker-end="url(#a1)" stroke="var(--diag-green)"/>
-        <text class="ts" x="474" y="712" text-anchor="middle" style="fill:var(--diag-green)">Non</text>
-
-        <!-- Boucle retour (gauche) -->
-        <g class="fill-gray">
-            <rect x="100" y="720" width="180" height="36" rx="8" stroke-width="0.5"/>
-            <text class="th" x="190" y="738" text-anchor="middle" dominant-baseline="central">Ré-optimiser</text>
-        </g>
-        <path d="M190 756 L190 770 L20 770 L20 76 L190 76" fill="none" class="arr" stroke-width="1.5" marker-end="url(#a1)" stroke-dasharray="6 4"/>
-
-        <!-- Fin (droite) -->
-        <g class="fill-teal">
-            <rect x="400" y="720" width="180" height="36" rx="8" stroke-width="0.5"/>
-            <text class="th" x="490" y="738" text-anchor="middle" dominant-baseline="central">Fin : sortie + résultats</text>
-        </g>
-    </svg>
-    <div class="legend">
-        Le solveur n'est pas appelé à l'itération 1 ni quand le problème
-        ne contient aucune contrainte (on part de l'empilement
-        économique). Le choix Simplexe/PNE dépend de la présence de
-        variables entières (parades, émulation AC, comptage curatif).
-    </div>
-</div>
+:file: img/micro_it_vue_ensemble.svg
 ```
+
+:::{container} legend
+Le solveur n'est pas appelé à l'itération 1 ni quand le problème ne contient aucune contrainte (on part de
+l'empilement économique). Le choix Simplexe/PNE dépend de la présence de variables entières (parades,
+émulation AC, comptage curatif).
+:::
+::::
 
 ---
 
@@ -1674,177 +1244,24 @@ contrainte n'est détectée, ou quand un des critères d'arrêt est atteint.
 La détection se fait en deux phases : d'abord en situation N (réseau intact), puis en N-k pour
 chaque incident. Quatre filtres successifs éliminent les contraintes redondantes ou insolubles avant de les retenir.
 
+::::{container} diagram-card
 ```{raw} html
-<div class="diagram-card">
-    <svg width="100%" viewBox="0 0 680 1280" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-            <marker id="a2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </marker>
-        </defs>
-
-        <text class="th" x="340" y="24" text-anchor="middle">detectionContraintes — logique détaillée</text>
-
-        <!-- ============== PHASE 1 : DÉTECTION EN N ============== -->
-        <rect class="dashed-zone" x="30" y="42" width="620" height="380" rx="16"/>
-        <text class="th" x="50" y="64">Phase 1 — Détection en N</text>
-        <text class="ts" x="50" y="82">Boucle sur elementsASurveillerN_</text>
-
-        <g class="fill-amber">
-            <rect x="50" y="98" width="260" height="44" rx="8" stroke-width="0.5"/>
-            <text class="th" x="180" y="116" text-anchor="middle" dominant-baseline="central">Écart déjà dans le problème ?</text>
-            <text class="ts" x="180" y="132" text-anchor="middle" dominant-baseline="central">(WITHOUT_REDISPATCH / WITH_OVERLOAD)</text>
-        </g>
-        <line x1="310" y1="120" x2="370" y2="120" class="arr" marker-end="url(#a2)"/>
-        <text class="ts" x="390" y="116" text-anchor="start" style="fill: var(--diag-green)">Oui → skip</text>
-        <text class="ts" x="390" y="132" text-anchor="start" style="fill: var(--diag-green)">MAJ depassementEnN_</text>
-        <line x1="180" y1="142" x2="180" y2="170" class="arr" marker-end="url(#a2)"/>
-        <text class="ts" x="186" y="160" text-anchor="start">Non ↓</text>
-
-        <g class="fill-teal">
-            <rect x="50" y="170" width="260" height="66" rx="8" stroke-width="0.5"/>
-            <text class="th" x="180" y="186" text-anchor="middle" dominant-baseline="central">Calcul transit en N</text>
-            <text class="ts" x="180" y="206" text-anchor="middle" dominant-baseline="central">Σ(coeff × transitSurQuad(N))</text>
-            <text class="ts" x="180" y="222" text-anchor="middle" dominant-baseline="central">→ stocke depassementEnN_</text>
-        </g>
-        <line x1="180" y1="236" x2="180" y2="250" class="arr" marker-end="url(#a2)"/>
-        <g class="fill-teal">
-            <rect x="50" y="250" width="260" height="52" rx="8" stroke-width="0.5"/>
-            <text class="th" x="180" y="268" text-anchor="middle" dominant-baseline="central">Dépassement ?</text>
-            <text class="ts" x="180" y="288" text-anchor="middle" dominant-baseline="central">depassementEnN_ > acceptable_diff</text>
-        </g>
-        <line x1="310" y1="276" x2="370" y2="276" class="arr" marker-end="url(#a2)"/>
-        <text class="ts" x="390" y="280" text-anchor="start" style="fill: var(--diag-green)">Non → skip</text>
-        <line x1="180" y1="302" x2="180" y2="330" class="arr" marker-end="url(#a2)"/>
-
-        <g class="fill-amber">
-            <rect x="50" y="330" width="260" height="44" rx="8" stroke-width="0.5"/>
-            <text class="th" x="180" y="348" text-anchor="middle" dominant-baseline="central">Action préventive possible ?</text>
-            <text class="ts" x="180" y="364" text-anchor="middle" dominant-baseline="central">(WITHOUT_REDISPATCH / WITH_OVERLOAD)</text>
-        </g>
-        <line x1="310" y1="352" x2="370" y2="352" class="arr" marker-end="url(#a2)"/>
-        <text class="ts" x="380" y="348" text-anchor="start" style="fill: var(--diag-red)">Non → ignorée</text>
-        <text class="ts" x="380" y="364" text-anchor="start" style="fill: var(--diag-red)">ecarts_[N] = -1</text>
-        <line x1="180" y1="374" x2="180" y2="392" class="arr" marker-end="url(#a2)"/>
-
-        <g class="fill-coral">
-            <rect x="80" y="392" width="200" height="28" rx="6" stroke-width="0.5"/>
-            <text class="th" x="180" y="406" text-anchor="middle" dominant-baseline="central">→ CONTRAINTE_N</text>
-        </g>
-
-        <!-- ============== PHASE 2 : DÉTECTION EN N-k ============== -->
-        <rect class="dashed-zone" x="30" y="442" width="620" height="830" rx="16"/>
-        <text class="th" x="50" y="464">Phase 2 — Détection en N-k</text>
-        <text class="ts" x="50" y="482">Boucle externe : incidents</text>
-
-        <g class="fill-gray">
-            <rect x="50" y="498" width="280" height="52" rx="8" stroke-width="0.5"/>
-            <text class="th" x="190" y="516" text-anchor="middle" dominant-baseline="central">Incident valide ?</text>
-            <text class="ts" x="190" y="536" text-anchor="middle" dominant-baseline="central">validité, parade activée, grp dispo</text>
-        </g>
-        <line x1="330" y1="524" x2="380" y2="524" class="arr" marker-end="url(#a2)"/>
-        <text class="ts" x="400" y="524" text-anchor="start" style="fill: var(--diag-red)">Non → skip</text>
-        <line x1="190" y1="550" x2="190" y2="570" class="arr" marker-end="url(#a2)"/>
-
-        <rect class="dashed-inner" x="40" y="570" width="600" height="650" rx="12"/>
-        <text class="ts" x="55" y="588">Boucle interne : elementsASurveillerNk_</text>
-
-        <g class="fill-teal">
-            <rect x="55" y="602" width="260" height="52" rx="8" stroke-width="0.5"/>
-            <text class="th" x="185" y="620" text-anchor="middle" dominant-baseline="central">Transit sur incident</text>
-            <text class="ts" x="185" y="640" text-anchor="middle" dominant-baseline="central">Σ(coeff × transitSurQuad(icdt))</text>
-        </g>
-        <line x1="185" y1="654" x2="185" y2="674" class="arr" marker-end="url(#a2)"/>
-
-        <g class="fill-purple">
-            <rect x="370" y="602" width="260" height="52" rx="8" stroke-width="0.5"/>
-            <text class="th" x="500" y="620" text-anchor="middle" dominant-baseline="central">Enregistrement menaces</text>
-            <text class="ts" x="500" y="640" text-anchor="middle" dominant-baseline="central">menacesMax_, menaceMaxAvantParade_</text>
-        </g>
-        <line x1="315" y1="628" x2="368" y2="628" class="arr" marker-end="url(#a2)"/>
-
-        <g class="fill-amber">
-            <rect x="55" y="674" width="260" height="44" rx="8" stroke-width="0.5"/>
-            <text class="th" x="185" y="690" text-anchor="middle" dominant-baseline="central">Parades activées ET pas ITAM ?</text>
-            <text class="ts" x="185" y="708" text-anchor="middle" dominant-baseline="central">paradesActivees_ &amp;&amp; !useItam()</text>
-        </g>
-        <line x1="315" y1="696" x2="370" y2="696" class="arr" marker-end="url(#a2)"/>
-        <text class="ts" x="380" y="690" text-anchor="start" style="fill: var(--diag-green)">Oui → skip</text>
-        <text class="ts" x="380" y="706" text-anchor="start" style="fill: var(--diag-green)">parade déjà choisie</text>
-        <line x1="185" y1="718" x2="185" y2="736" class="arr" marker-end="url(#a2)"/>
-
-        <g class="fill-teal">
-            <rect x="55" y="736" width="260" height="44" rx="8" stroke-width="0.5"/>
-            <text class="th" x="185" y="752" text-anchor="middle" dominant-baseline="central">Calcul seuil + écart</text>
-            <text class="ts" x="185" y="770" text-anchor="middle" dominant-baseline="central">seuilMax/Min(icdt) selon état</text>
-        </g>
-        <line x1="185" y1="780" x2="185" y2="798" class="arr" marker-end="url(#a2)"/>
-
-        <g class="fill-amber">
-            <rect x="55" y="798" width="260" height="44" rx="8" stroke-width="0.5"/>
-            <text class="th" x="185" y="814" text-anchor="middle" dominant-baseline="central">Filtre 1 : écart déjà entré ?</text>
-            <text class="ts" x="185" y="832" text-anchor="middle" dominant-baseline="central">(WITHOUT_REDISPATCH / WITH_OVERLOAD)</text>
-        </g>
-        <line x1="315" y1="814" x2="370" y2="814" class="arr" marker-end="url(#a2)"/>
-        <text class="ts" x="380" y="814" text-anchor="start" style="fill: var(--diag-green)">Oui → skip</text>
-        <line x1="185" y1="842" x2="185" y2="860" class="arr" marker-end="url(#a2)"/>
-
-        <g class="fill-amber">
-            <rect x="55" y="860" width="260" height="60" rx="8" stroke-width="0.5"/>
-            <text class="th" x="185" y="876" text-anchor="middle" dominant-baseline="central">Filtre 2 : action possible ?</text>
-            <text class="ts" x="185" y="894" text-anchor="middle" dominant-baseline="central">préventif / curatif / parade</text>
-            <text class="ts" x="185" y="910" text-anchor="middle" dominant-baseline="central">(WITHOUT_REDISPATCH / WITH_OVERLOAD)</text>
-        </g>
-        <line x1="315" y1="888" x2="370" y2="888" class="arr" marker-end="url(#a2)"/>
-        <text class="ts" x="380" y="882" text-anchor="start" style="fill: var(--diag-red)">Non → ignorée</text>
-        <text class="ts" x="380" y="898" text-anchor="start" style="fill: var(--diag-red)">ecarts_[icdt] = -1</text>
-        <line x1="185" y1="920" x2="185" y2="938" class="arr" marker-end="url(#a2)"/>
-
-        <g class="fill-amber">
-            <rect x="55" y="938" width="260" height="28" rx="8" stroke-width="0.5"/>
-            <text class="th" x="185" y="952" text-anchor="middle" dominant-baseline="central">Filtre 3 : écart > seuil de détection ?</text>
-        </g>
-        <line x1="315" y1="952" x2="370" y2="952" class="arr" marker-end="url(#a2)"/>
-        <text class="ts" x="380" y="952" text-anchor="start" style="fill: var(--diag-green)">Non → skip</text>
-        <line x1="185" y1="966" x2="185" y2="984" class="arr" marker-end="url(#a2)"/>
-
-        <g class="fill-amber">
-            <rect x="55" y="984" width="260" height="60" rx="8" stroke-width="0.5"/>
-            <text class="th" x="185" y="1000" text-anchor="middle" dominant-baseline="central">Filtre 4 : masquée par N ?</text>
-            <text class="ts" x="185" y="1018" text-anchor="middle" dominant-baseline="central">!quadFictif &amp;&amp; survMaxN_ == SURVEILLE</text>
-            <text class="ts" x="185" y="1034" text-anchor="middle" dominant-baseline="central">&amp;&amp; écart ≤ depassementEnN_</text>
-        </g>
-        <line x1="315" y1="1014" x2="370" y2="1014" class="arr" marker-end="url(#a2)"/>
-        <text class="ts" x="380" y="1008" text-anchor="start" style="fill: var(--diag-green)">Oui → redondante</text>
-        <text class="ts" x="380" y="1024" text-anchor="start" style="fill: var(--diag-green)">la N suffit</text>
-        <line x1="185" y1="1044" x2="185" y2="1068" class="arr" marker-end="url(#a2)"/>
-
-        <g class="fill-coral">
-            <rect x="60" y="1068" width="250" height="28" rx="6" stroke-width="0.5"/>
-            <text class="th" x="185" y="1082" text-anchor="middle" dominant-baseline="central">→ CONTRAINTE_N_MOINS_K</text>
-        </g>
-
-        <line x1="190" y1="1120" x2="190" y2="1144" class="arr" marker-end="url(#a2)"/>
-
-        <g class="fill-purple">
-            <rect x="50" y="1144" width="590" height="52" rx="8" stroke-width="0.5"/>
-            <text class="th" x="345" y="1162" text-anchor="middle" dominant-baseline="central">Contrainte fictive poche (par incident)</text>
-            <text class="ts" x="345" y="1182" text-anchor="middle" dominant-baseline="central">Si pocheRécupérableEncuratif ET aucune contrainte trouvée ET parades pas activées</text>
-        </g>
-
-        <line x1="345" y1="1196" x2="345" y2="1218" class="arr" marker-end="url(#a2)"/>
-
-        <g class="fill-coral">
-            <rect x="150" y="1218" width="380" height="44" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="1240" text-anchor="middle" dominant-baseline="central">Sortie : nbCtr_ contraintes dans icdtQdt_[]</text>
-        </g>
-    </svg>
-    <div class="legend">
-        <strong>Sémantique des « skip » :</strong> un skip signifie « ne pas écrire cette contrainte dans le LP » et passer à l'élément suivant — la variante n'est pas marquée insoluble. Quand un filtre pose <code>ecarts_[icdt] = -1</code> (filtres « action possible » et N-k filtre 2), le marqueur est permanent : la contrainte est définitivement ignorée et la surcharge éventuelle apparaîtra dans les sorties comme non résolue. <br/><br/>
-        Les filtres marqués <em>(WITHOUT_REDISPATCH / WITH_OVERLOAD)</em> ne s'exécutent que dans ces deux modes (variables d'écart). Le check ITAM bloque la re-détection sur les incidents dont les parades sont déjà choisies, sauf si le seuil avant-curatif (ITAM) doit être vérifié. Après la boucle interne, par incident : si l'incident rompt la connexité (poche récupérable via une parade), qu'aucune contrainte n'a été trouvée, et que les parades ne sont pas déjà activées, une contrainte fictive est ajoutée pour forcer l'entrée de l'incident dans le LP.
-    </div>
-</div>
+:file: img/micro_it_detection.svg
 ```
+
+:::{container} legend
+**Sémantique des « skip » :** un skip signifie « ne pas écrire cette contrainte dans le LP » et passer à
+l'élément suivant — la variante n'est pas marquée insoluble. Quand un filtre pose `ecarts_[icdt] = -1`
+(filtres « action possible » et N-k filtre 2), le marqueur est permanent : la contrainte est définitivement
+ignorée et la surcharge éventuelle apparaîtra dans les sorties comme non résolue.
+
+Les filtres marqués *(WITHOUT_REDISPATCH / WITH_OVERLOAD)* ne s'exécutent que dans ces deux modes (variables
+d'écart). Le check ITAM bloque la re-détection sur les incidents dont les parades sont déjà choisies, sauf si
+le seuil avant-curatif (ITAM) doit être vérifié. Après la boucle interne, par incident : si l'incident rompt
+la connexité (poche récupérable via une parade), qu'aucune contrainte n'a été trouvée, et que les parades ne
+sont pas déjà activées, une contrainte fictive est ajoutée pour forcer l'entrée de l'incident dans le LP.
+:::
+::::
 
 ---
 
@@ -1854,196 +1271,21 @@ Une fois les contraintes détectées, elles sont traduites en lignes de la matri
 d'optimisation. C'est ici que les parades sont activées, que les variables entières et curatives
 sont créées, et que les coupes de transit sont écrites.
 
+::::{container} diagram-card
 ```{raw} html
-<div class="diagram-card">
-    <svg
-        width="100%"
-        viewBox="0 0 680 1180"
-        xmlns="http://www.w3.org/2000/svg"
-    >
-        <defs>
-            <marker
-                id="a3"
-                viewBox="0 0 10 10"
-                refX="8"
-                refY="5"
-                markerWidth="6"
-                markerHeight="6"
-                orient="auto-start-reverse"
-            >
-                <path
-                    d="M2 1L8 5L2 9"
-                    fill="none"
-                    stroke="context-stroke"
-                    stroke-width="1.5"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                />
-            </marker>
-        </defs>
-
-        <text class="th" x="340" y="24" text-anchor="middle">
-            ajoutContraintes — logique détaillée
-        </text>
-
-        <g class="fill-amber">
-            <rect x="170" y="46" width="340" height="60" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="64" text-anchor="middle" dominant-baseline="central">Trop de contraintes ?</text>
-            <text class="ts" x="340" y="82" text-anchor="middle" dominant-baseline="central">nbCtr_ > max, mode OPF/OPF_OVERLOAD</text>
-            <text class="ts" x="340" y="96" text-anchor="middle" dominant-baseline="central">et micro-itération ≤ 5</text>
-        </g>
-        <line x1="510" y1="76" x2="570" y2="76" class="arr" marker-end="url(#a3)"/>
-        <text class="ts" x="576" y="70" text-anchor="start">Oui →</text>
-        <text class="ts" x="576" y="86" text-anchor="start">dédoublonnage</text>
-        <line x1="340" y1="106" x2="340" y2="130" class="arr" marker-end="url(#a3)"/>
-
-        <rect class="dashed-zone" x="20" y="130" width="640" height="1020" rx="16"/>
-        <text class="th" x="40" y="152">Boucle sur icdtQdt_[0..nbCtr_]</text>
-
-        <g class="fill-gray">
-            <rect x="140" y="168" width="220" height="44" rx="8" stroke-width="0.5"/>
-            <text class="th" x="250" y="190" text-anchor="middle" dominant-baseline="central">Type de contrainte ?</text>
-        </g>
-
-        <line x1="200" y1="212" x2="140" y2="258" class="arr" marker-end="url(#a3)"/>
-
-        <line x1="360" y1="190" x2="400" y2="190" class="arr"/>
-        <line x1="400" y1="190" x2="400" y2="540" class="arr" stroke-width="1.5"/>
-        <line x1="400" y1="282" x2="430" y2="282" class="arr" marker-end="url(#a3)"/>
-        <line x1="400" y1="402" x2="430" y2="402" class="arr" marker-end="url(#a3)"/>
-        <line x1="400" y1="530" x2="430" y2="530" class="arr" marker-end="url(#a3)"/>
-
-        <rect class="dashed-inner" x="30" y="258" width="250" height="460" rx="12"/>
-        <text class="ts" x="45" y="278">Cas A : 1ère contrainte d'un</text>
-        <text class="ts" x="45" y="292">incident avec parades</text>
-
-        <g class="fill-blue">
-            <rect x="42" y="306" width="226" height="50" rx="8" stroke-width="0.5"/>
-            <text class="th" x="155" y="324" text-anchor="middle" dominant-baseline="central">Activer les parades</text>
-            <text class="ts" x="155" y="342" text-anchor="middle" dominant-baseline="central">paradesActivees_ = true</text>
-        </g>
-        <line x1="155" y1="356" x2="155" y2="372" class="arr" marker-end="url(#a3)"/>
-
-        <g class="fill-purple">
-            <rect x="42" y="372" width="226" height="50" rx="8" stroke-width="0.5"/>
-            <text class="th" x="155" y="390" text-anchor="middle" dominant-baseline="central">Var. entières activation</text>
-            <text class="ts" x="155" y="408" text-anchor="middle" dominant-baseline="central">cost_parade × proba</text>
-        </g>
-        <line x1="155" y1="422" x2="155" y2="438" class="arr" marker-end="url(#a3)"/>
-
-        <g class="fill-teal">
-            <rect x="42" y="438" width="226" height="44" rx="8" stroke-width="0.5"/>
-            <text class="th" x="155" y="460" text-anchor="middle" dominant-baseline="central">Variables curatives</text>
-        </g>
-        <line x1="155" y1="482" x2="155" y2="498" class="arr" marker-end="url(#a3)"/>
-
-        <g class="fill-teal">
-            <rect x="42" y="498" width="226" height="50" rx="8" stroke-width="0.5"/>
-            <text class="th" x="155" y="516" text-anchor="middle" dominant-baseline="central">Heuristique eval_parade</text>
-            <text class="ts" x="155" y="534" text-anchor="middle" dominant-baseline="central">Pré-filtrage efficacité</text>
-        </g>
-        <line x1="155" y1="548" x2="155" y2="564" class="arr" marker-end="url(#a3)"/>
-
-        <g class="fill-blue">
-            <rect x="42" y="564" width="226" height="50" rx="8" stroke-width="0.5"/>
-            <text class="th" x="155" y="578" text-anchor="middle" dominant-baseline="central">Contrainte par parade</text>
-            <text class="ts" x="155" y="596" text-anchor="middle" dominant-baseline="central">+ contrainte d'activation</text>
-        </g>
-        <line x1="155" y1="614" x2="155" y2="630" class="arr" marker-end="url(#a3)"/>
-
-        <g class="fill-blue">
-            <rect x="42" y="630" width="226" height="62" rx="8" stroke-width="0.5"/>
-            <text class="th" x="155" y="648" text-anchor="middle" dominant-baseline="central">Si ITAM : contrainte ITAM</text>
-            <text class="ts" x="155" y="666" text-anchor="middle" dominant-baseline="central">sur seuilMaxAvantCur_</text>
-            <text class="ts" x="155" y="682" text-anchor="middle" dominant-baseline="central">(si écart pré-curatif significatif)</text>
-        </g>
-
-        <rect class="dashed-inner" x="430" y="248" width="220" height="108" rx="12"/>
-        <text class="ts" x="445" y="268">Cas B : contrainte détectée</text>
-        <text class="ts" x="445" y="282">sur une parade (micro-it. préc.)</text>
-
-        <g class="fill-blue">
-            <rect x="442" y="296" width="196" height="50" rx="8" stroke-width="0.5"/>
-            <text class="th" x="540" y="314" text-anchor="middle" dominant-baseline="central">Contrainte</text>
-            <text class="ts" x="540" y="332" text-anchor="middle" dominant-baseline="central">par parade</text>
-        </g>
-
-        <rect class="dashed-inner" x="430" y="368" width="220" height="128" rx="12"/>
-        <text class="ts" x="445" y="388">Cas B' : autre contrainte,</text>
-        <text class="ts" x="445" y="402">parades activées cette micro-it.</text>
-
-        <g class="fill-blue">
-            <rect x="442" y="416" width="196" height="28" rx="8" stroke-width="0.5"/>
-            <text class="th" x="540" y="430" text-anchor="middle" dominant-baseline="central">Contrainte par parade</text>
-        </g>
-        <line x1="540" y1="444" x2="540" y2="460" class="arr" marker-end="url(#a3)"/>
-
-        <g class="fill-purple">
-            <rect x="442" y="460" width="196" height="28" rx="8" stroke-width="0.5"/>
-            <text class="th" x="540" y="474" text-anchor="middle" dominant-baseline="central">Contrainte d'activation</text>
-        </g>
-
-        <rect class="dashed-inner" x="430" y="508" width="220" height="88" rx="12"/>
-        <text class="ts" x="445" y="528">Cas C : contrainte simple</text>
-        <text class="ts" x="445" y="542">N ou N-k sans parade</text>
-
-        <g class="fill-gray">
-            <rect x="442" y="556" width="196" height="28" rx="8" stroke-width="0.5"/>
-            <text class="th" x="540" y="570" text-anchor="middle" dominant-baseline="central">Ajout direct</text>
-        </g>
-
-        <line x1="155" y1="692" x2="155" y2="750" class="arr"/>
-        <path d="M155 750 L340 770" fill="none" class="arr"/>
-        <path d="M540 346 L600 346 L600 750 L345 770" fill="none" class="arr"/>
-        <path d="M540 488 L590 488 L590 752" fill="none" class="arr"/>
-        <path d="M540 584 L580 584 L580 754" fill="none" class="arr"/>
-        <circle cx="340" cy="770" r="3" fill="var(--color-foreground-secondary)"/>
-        <line x1="340" y1="773" x2="340" y2="798" class="arr" marker-end="url(#a3)"/>
-
-        <g class="fill-coral">
-            <rect x="120" y="798" width="440" height="80" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="822" text-anchor="middle" dominant-baseline="central">ajoutContrainte</text>
-            <text class="ts" x="340" y="842" text-anchor="middle" dominant-baseline="central">Détection équivalence entre parades</text>
-            <text class="ts" x="340" y="860" text-anchor="middle" dominant-baseline="central">Calcul coefficients : coeffPourQuadEnN / coeffPourQuadInc</text>
-        </g>
-        <line x1="340" y1="878" x2="340" y2="908" class="arr" marker-end="url(#a3)"/>
-
-        <g class="fill-gray">
-            <rect x="120" y="908" width="440" height="52" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="926" text-anchor="middle" dominant-baseline="central">Vérification cohérence</text>
-            <text class="ts" x="340" y="946" text-anchor="middle" dominant-baseline="central">|transitDétecté - transitCalculé| > seuil → erreur</text>
-        </g>
-        <line x1="340" y1="960" x2="340" y2="990" class="arr" marker-end="url(#a3)"/>
-
-        <g class="fill-blue">
-            <rect x="120" y="990" width="440" height="56" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="1010" text-anchor="middle" dominant-baseline="central">ecrireCoupeTransit</text>
-            <text class="ts" x="340" y="1030" text-anchor="middle" dominant-baseline="central">minT ≤ Σ(coefs[j] × x[j]) + partieFixe ≤ maxT</text>
-        </g>
-        <line x1="340" y1="1046" x2="340" y2="1076" class="arr" marker-end="url(#a3)"/>
-
-        <g class="fill-purple">
-            <rect x="120" y="1076" width="440" height="44" rx="8" stroke-width="0.5"/>
-            <text class="th" x="340" y="1092" text-anchor="middle" dominant-baseline="central">+ variable d'écart</text>
-            <text class="ts" x="340" y="1110" text-anchor="middle" dominant-baseline="central">modes OPF_WITHOUT_REDISPATCH / OPF_WITH_OVERLOAD</text>
-        </g>
-    </svg>
-    <div class="legend">
-        Les 4 cas correspondent à la chaîne if/else if/else if/else du
-        code. Case A: première contrainte d'un incident avec parades —
-        crée les variables entières, curatives, les contraintes d'activation,
-        et — si <code>TESTITAM</code> est activé et que l'écart pré-curatif
-        dépasse le seuil de détection — une contrainte ITAM dédiée sur
-        <code>seuilMaxAvantCur_</code>. Cas B : la contrainte a été détectée
-        sur une parade (activée dans une micro-itération précédente) — crée
-        les contraintes par parade sans contrainte d'activation. Cas B' :
-        autre contrainte sur un incident dont les parades ont été activées
-        plus tôt dans cette même micro-itération — crée les contraintes par
-        parade avec contrainte d'activation. Cas C : contrainte en N ou
-        N-k simple, ajout direct.
-    </div>
-</div>
+:file: img/micro_it_ajout_contraintes.svg
 ```
+
+:::{container} legend
+Les 4 cas correspondent à la chaîne if/else if/else if/else du code. Case A: première contrainte d'un incident
+avec parades — crée les variables entières, curatives, les contraintes d'activation, et — si `TESTITAM` est
+activé et que l'écart pré-curatif dépasse le seuil de détection — une contrainte ITAM dédiée sur
+`seuilMaxAvantCur_`. Cas B : la contrainte a été détectée sur une parade (activée dans une micro-itération
+précédente) — crée les contraintes par parade sans contrainte d'activation. Cas B' : autre contrainte sur un
+incident dont les parades ont été activées plus tôt dans cette même micro-itération — crée les contraintes par
+parade avec contrainte d'activation. Cas C : contrainte en N ou N-k simple, ajout direct.
+:::
+::::
 
 ---
 
