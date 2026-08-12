@@ -46,7 +46,7 @@
         <rect x="40" y="240" width="600" height="110" rx="8" stroke-width="0.5"/>
         <text class="th" x="340" y="264" text-anchor="middle" dominant-baseline="central">Capacités par mode</text>
         <text class="ts" x="60" y="288" text-anchor="start">Load-flow : calcul des flux uniquement — pas de boucle itérative</text>
-        <text class="ts" x="60" y="306" text-anchor="start">OPF sans redispatching : HVDC + déphaseurs + variables d'écart — production figée, défaillance interdite</text>
+        <text class="ts" x="60" y="306" text-anchor="start">OPF sans redispatching : HVDC + déphaseurs + écarts — production figée, défaillance interdite</text>
         <text class="ts" x="60" y="324" text-anchor="start">OPF (complet) : toutes les actions préventives + curatives, parades, redispatching, délestage curatif</text>
         <text class="ts" x="60" y="342" text-anchor="start">OPF avec surcharge : variables d'écart, mais ni délestage curatif ni contraintes de couplage</text>
     </g>
