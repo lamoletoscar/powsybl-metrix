@@ -1,4 +1,6 @@
-<svg width="100%" viewBox="0 0 680 660" xmlns="http://www.w3.org/2000/svg">
+<svg width="100%" viewBox="0 0 680 660" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="b1-t b1-d">
+    <title id="b1-t">Boucle d'optimisation itérative sous contraintes de sûreté</title>
+    <desc id="b1-d">Optimisation du plan de production, calcul des flux, vérification des critères de sûreté, puis ajout des contraintes violées et ré-optimisation jusqu'à disparition des violations.</desc>
     <defs>
         <marker id="b1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
             <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>

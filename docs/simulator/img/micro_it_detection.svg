@@ -1,9 +1,12 @@
-<svg width="100%" viewBox="0 0 680 1280" xmlns="http://www.w3.org/2000/svg">
+<svg width="100%" viewBox="0 0 680 1360" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="a2-t a2-d">
     <defs>
         <marker id="a2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
             <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </marker>
     </defs>
+
+    <title id="a2-t">Logique détaillée de la détection de contraintes</title>
+    <desc id="a2-d">Phase 1 en réseau intact puis phase 2 par incident, avec quatre filtres successifs, ajout éventuel d'une contrainte fictive de poche, et tri final des contraintes détectées.</desc>
 
     <text class="th" x="340" y="24" text-anchor="middle">detectionContraintes — logique détaillée</text>
 
@@ -55,7 +58,7 @@
     </g>
 
     <!-- ============== PHASE 2 : DÉTECTION EN N-k ============== -->
-    <rect class="dashed-zone" x="30" y="442" width="620" height="830" rx="16"/>
+    <rect class="dashed-zone" x="30" y="442" width="620" height="760" rx="16"/>
     <text class="th" x="50" y="464">Phase 2 — Détection en N-k</text>
     <text class="ts" x="50" y="482">Boucle externe : incidents</text>
 
@@ -68,7 +71,7 @@
     <text class="ts" x="400" y="524" text-anchor="start" style="fill: var(--diag-red)">Non → skip</text>
     <line x1="190" y1="550" x2="190" y2="570" class="arr" marker-end="url(#a2)"/>
 
-    <rect class="dashed-inner" x="40" y="570" width="600" height="650" rx="12"/>
+    <rect class="dashed-inner" x="40" y="570" width="600" height="540" rx="12"/>
     <text class="ts" x="55" y="588">Boucle interne : elementsASurveillerNk_</text>
 
     <g class="fill-teal">
@@ -154,10 +157,17 @@
         <text class="ts" x="345" y="1182" text-anchor="middle" dominant-baseline="central">Si pocheRécupérableEncuratif ET aucune contrainte trouvée ET parades pas activées</text>
     </g>
 
-    <line x1="345" y1="1196" x2="345" y2="1218" class="arr" marker-end="url(#a2)"/>
+    <line x1="345" y1="1196" x2="345" y2="1226" class="arr" marker-end="url(#a2)"/>
+
+    <g class="fill-gray">
+        <rect x="150" y="1226" width="380" height="56" rx="8" stroke-width="0.5"/>
+        <text class="th" x="340" y="1246" text-anchor="middle" dominant-baseline="central">Tri final (compareContraintes)</text>
+        <text class="ts" x="340" y="1266" text-anchor="middle" dominant-baseline="central">type croissant, puis écart décroissant</text>
+    </g>
+    <line x1="340" y1="1282" x2="340" y2="1308" class="arr" marker-end="url(#a2)"/>
 
     <g class="fill-coral">
-        <rect x="150" y="1218" width="380" height="44" rx="8" stroke-width="0.5"/>
-        <text class="th" x="340" y="1240" text-anchor="middle" dominant-baseline="central">Sortie : nbCtr_ contraintes dans icdtQdt_[]</text>
+        <rect x="150" y="1308" width="380" height="44" rx="8" stroke-width="0.5"/>
+        <text class="th" x="340" y="1330" text-anchor="middle" dominant-baseline="central">Sortie : nbCtr_ contraintes dans icdtQdt_[]</text>
     </g>
 </svg>

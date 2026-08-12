@@ -1064,17 +1064,19 @@ Ces limites représentent le transit de puissance active maximal que l'élément
 ```
 
 :::{container} legend
-La limite N s'applique en conditions normales d'exploitation (régime permanent). Les limites N-1 et N-k
-s'appliquent après une contingence et sont généralement plus élevées, reflétant la capacité thermique à court
-terme de l'élément. La limite ITAM (avant action curative) est la plus permissive : elle représente le transit
-que l'élément peut supporter pendant la période entre la contingence et l'exécution de l'action curative.
+Le seuil retenu ne résulte pas d'une échelle croissante mais d'un arbre de décision à cas exclusifs, réévalué
+à chaque comparaison entre un transit et une limite. Le seuil N s'applique en conditions normales
+d'exploitation. Le seuil post-incident correspond au régime stabilisé, une fois les actions curatives
+appliquées ; il est généralement plus élevé que le seuil N car il reflète la capacité thermique à court terme
+de l'ouvrage. Le seuil avant action curative, plus permissif encore, couvre la brève fenêtre séparant
+l'incident de l'exécution du curatif : il n'est retenu que sur les incidents dont les parades ont déjà été
+activées. Le repli du cas par défaut n'est pas un maximum entre deux seuils : lorsque l'option ITAM est active
+et que le seuil post-incident n'est pas renseigné, c'est le seuil avant action curative qui en tient lieu.
 :::
 ::::
 
-Lors de la vérification de sûreté, METRIX sélectionne la limite appropriée en fonction
-du contexte : si aucune contingence n'est évaluée, la limite N s'applique. Si une contingence
-est évaluée et que des actions curatives sont disponibles, la limite ITAM peut être utilisée pour
-refléter la capacité de surcharge transitoire avant l'exécution de l'action curative.
+Toutes ces limites peuvent être redéfinies par variante, ce qui autorise des calibrages thermiques
+propres à un scénario.
 
 ---
 
@@ -1108,11 +1110,16 @@ d'actions correctives, en plus du redispatching préventif.
 ```
 
 :::{container} legend
-Pour une contingence donnée, l'optimiseur doit choisir exactement une parade topologique (incluant l'option «
-ne rien faire »). Les actions curatives (production, HVDC, déphaseurs) opèrent dans la topologie post-parade
-choisie. Le coût d'activation d'une parade est proportionnel à la probabilité de la contingence et au nombre
-de contraintes associées, de sorte que les parades ne sont utilisées que lorsque les actions préventives
-seules sont insuffisantes.
+Pour une contingence donnée, l'optimiseur doit choisir exactement une parade — la somme des variables
+d'activation est contrainte à valoir 1. Cette contrainte ne force jamais une manœuvre : dès qu'un incident
+reçoit sa première parade, METRIX insère d'office en tête de liste une parade « ne rien faire », qui laisse la
+topologie intacte. Lorsque l'option ITAM est active, cette parade fictive est également créée pour les
+incidents qui disposent de moyens curatifs mais d'aucune parade topologique déclarée. Les actions curatives
+(production, HVDC, déphaseurs) sont rattachées aux parades et opèrent donc dans la topologie post-parade
+retenue ; elles sont partagées entre les parades d'un même incident, non dupliquées. Le coût d'activation
+d'une parade est proportionnel à la probabilité de la contingence et au nombre de contraintes déjà associées à
+l'incident, de sorte que les parades ne sont mobilisées que lorsque les actions préventives seules sont
+insuffisantes.
 :::
 ::::
 
@@ -1170,10 +1177,12 @@ METRIX propose quatre modes de calcul, chacun correspondant à un niveau d'optim
 
 :::{container} legend
 En mode Load-flow, un seul passage est effectué (pas de boucle itérative). En OPF sans redispatching, la
-production est fixée ; seuls les réglages HVDC et déphaseurs sont optimisés, et les surcharges sont signalées
-via des variables d'écart. Le mode OPF complet utilise la boucle de micro-itération complète avec tous les
-moyens d'action disponibles. Le mode OPF avec tolérance de surcharge est identique à l'OPF complet sauf que
-les surcharges insolubles produisent une solution pénalisée plutôt qu'un échec.
+production est figée et la défaillance interdite ; seuls les réglages HVDC et déphaseurs sont optimisés, et
+les surcharges résiduelles sont signalées via des variables d'écart. Le mode OPF complet utilise la boucle de
+micro-itération avec tous les moyens d'action disponibles. Le mode OPF avec tolérance de surcharge en diffère
+sur trois points, et pas seulement sur le traitement des surcharges insolubles : les variables d'écart y
+rendent les contraintes de transit souples, le délestage curatif n'y est pas lu, et les contraintes de
+couplage entre variables ne sont pas posées.
 :::
 ::::
 
@@ -1233,7 +1242,10 @@ contrainte n'est détectée, ou quand un des critères d'arrêt est atteint.
 :::{container} legend
 Le solveur n'est pas appelé à l'itération 1 ni quand le problème ne contient aucune contrainte (on part de
 l'empilement économique). Le choix Simplexe/PNE dépend de la présence de variables entières (parades,
-émulation AC, comptage curatif).
+émulation AC, comptage curatif). La boucle s'arrête lorsque aucune contrainte n'a été *écrite* dans le
+problème au cours de l'itération — ce qui n'est pas strictement équivalent à « aucune contrainte détectée » :
+des contraintes peuvent avoir été détectées puis toutes ignorées, par équivalence entre parades ou par absence
+de levier d'action.
 :::
 ::::
 
@@ -1260,6 +1272,12 @@ d'écart). Le check ITAM bloque la re-détection sur les incidents dont les para
 le seuil avant-curatif (ITAM) doit être vérifié. Après la boucle interne, par incident : si l'incident rompt
 la connexité (poche récupérable via une parade), qu'aucune contrainte n'a été trouvée, et que les parades ne
 sont pas déjà activées, une contrainte fictive est ajoutée pour forcer l'entrée de l'incident dans le LP.
+
+Le tri final n'est pas cosmétique : c'est lui qui définit l'ordre de priorité exploité ensuite par
+l'heuristique de dédoublonnage. L'ordre de l'énumération des types place les contraintes d'émulation AC avant
+les contraintes N, elles-mêmes avant les N-k ; à type égal, la contrainte de plus grand écart passe en
+premier. Enfin, les deux boucles de détection sont bornées par la capacité du tableau `icdtQdt_` : au-delà, la
+détection s'arrête pour cette micro-itération et reprendra à la suivante.
 :::
 ::::
 
@@ -1284,6 +1302,12 @@ activé et que l'écart pré-curatif dépasse le seuil de détection — une con
 précédente) — crée les contraintes par parade sans contrainte d'activation. Cas B' : autre contrainte sur un
 incident dont les parades ont été activées plus tôt dans cette même micro-itération — crée les contraintes par
 parade avec contrainte d'activation. Cas C : contrainte en N ou N-k simple, ajout direct.
+
+Deux précisions de localisation, utiles pour naviguer dans le code : la variable entière d'activation d'une
+parade et le test d'équivalence entre contraintes de parades ne sont pas créés dans `ajoutContraintes` mais
+dans `ecrireCoupeTransit`, appelée en fin de chaîne. Et la contrainte de choix topologique, posée une fois par
+incident après le parcours de ses parades, est ce qui rend vraie l'affirmation « exactement une parade est
+activée » de la partie fonctionnelle.
 :::
 ::::
 
@@ -1304,14 +1328,27 @@ directement le résultat de l'empilement économique (phase hors-réseau).
 
 ##### Dédoublonnage (`choixContraintesAajouter`)
 
-Quand le nombre de contraintes détectées dépasse `nb_max_contraints_by_iteration`, et uniquement
-en modes `OPF` ou `OPF_WITH_OVERLOAD` durant les micro-itérations 1 à 5. Cette heuristique élimine
-les contraintes quasi-redondantes sur le même élément surveillé. Une contrainte moins prioritaire
-est éclipsée (`ecrireContrainte_ = false`) si : (a) elle n'est pas du même type que la plus
-prioritaire (le tri plaçant les contraintes N avant les N-k, c'est toujours la N-k qui
-est éclipsée au profit de la N sur le même élément), ou (b) les deux sont du même type, l'incident
-n'est pas la situation N, il n'a pas d'éléments curatifs, et les transits sont à moins
-de 1 % d'écart avec un seuil à moins de 1 MW.
+Cette heuristique ne s'exécute que si le nombre de contraintes détectées dépasse
+`nb_max_contraints_by_iteration`, en modes `OPF` ou `OPF_WITH_OVERLOAD`, et durant les micro-itérations 1 à 5.
+Lorsqu'elle s'exécute, le nombre de contraintes effectivement écrites dans le problème pour cette micro-itération
+est en outre plafonné à `nb_max_contraints_by_iteration` ; sinon, toutes les contraintes détectées sont écrites.
+
+L'intention est d'éliminer les contraintes quasi-redondantes portant sur le même élément surveillé. Les contraintes
+d'un même élément sont parcourues dans l'ordre du tri, et une contrainte de rang inférieur est éclipsée
+(`ecrireContrainte_ = false`) si l'une des deux conditions suivantes est vraie :
+
+- **(a)** elle n'est pas du même type que la contrainte prioritaire ;
+- **(b)** les deux sont du même type, l'incident n'est pas la situation N, il n'a pas d'éléments curatifs, et les
+  transits sont à moins de 1 % d'écart avec des seuils distants de moins de 1 MW.
+
+```{warning}
+La condition **(a)** est un simple test d'inégalité de type, sans aucune vérification de similarité des transits.
+Compte tenu de l'ordre de l'énumération des types (émulation AC, puis N, puis N-k), elle a pour effet d'éclipser
+systématiquement toute contrainte de type différent portant sur le même élément surveillé, quelle que soit
+l'ampleur de la surcharge concernée : une contrainte d'émulation AC éclipse ainsi une contrainte N *et* une
+contrainte N-k. Ce comportement est décrit ici tel qu'il est implémenté ; il n'est pas établi qu'il soit
+intentionnel et fait l'objet d'une analyse en cours.
+```
 
 ##### Contrainte fictive de poche
 
@@ -1324,6 +1361,14 @@ solveur ne saurait pas qu'il peut « récupérer » la poche.
 
 ##### Variables d'écart
 
-En modes `OPF_WITHOUT_REDISPATCH` et `OPF_WITH_OVERLOAD`, chaque contrainte peut recevoir une
-variable d'écart pénalisée dans la fonction objectif. Cela permet au solveur de tolérer
-des surcharges (moyennant un coût élevé) plutôt que de déclarer « pas de solution ».
+En modes `OPF_WITHOUT_REDISPATCH` et `OPF_WITH_OVERLOAD`, chaque contrainte de transit peut recevoir une
+variable d'écart pénalisée dans la fonction objectif. Cela permet au solveur de tolérer des surcharges
+(moyennant un coût élevé) plutôt que de déclarer « pas de solution ». Les contraintes d'activation de parade et
+les contraintes d'émulation AC en sont exclues.
+
+C'est aussi ce qui explique l'asymétrie de traitement des contraintes sans levier d'action. Lorsque la coupe de
+transit ne contient aucun coefficient non nul — autrement dit lorsque aucune variable du problème n'influence le
+transit concerné — les deux modes à variables d'écart marquent la contrainte comme définitivement ignorée et
+poursuivent le calcul, tandis que le mode `OPF` retourne « pas de solution ». Un utilisateur qui constate un échec
+de convergence en `OPF` alors que le même cas passe en `OPF_WITH_OVERLOAD` se heurte le plus souvent à cette
+différence.

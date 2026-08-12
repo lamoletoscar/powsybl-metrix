@@ -1,4 +1,6 @@
-<svg width="100%" viewBox="0 0 680 470" xmlns="http://www.w3.org/2000/svg">
+<svg width="100%" viewBox="0 0 680 470" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="b4-t b4-d">
+    <title id="b4-t">Mécanismes d'actions correctives</title>
+    <desc id="b4-d">Actions préventives appliquées avant contingence, puis actions curatives et parades topologiques appliquées après contingence, l'optimiseur retenant la combinaison de moindre coût.</desc>
     <defs>
         <marker id="b4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
             <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -53,9 +55,9 @@
     </g>
     <g class="fill-purple">
         <rect x="362" y="264" width="276" height="62" rx="8" stroke-width="0.5"/>
-        <text class="th" x="500" y="280" text-anchor="middle" dominant-baseline="central">Parade « ne rien faire »</text>
-        <text class="ts" x="500" y="298" text-anchor="middle" dominant-baseline="central">(actions curatives seules,</text>
-        <text class="ts" x="500" y="312" text-anchor="middle" dominant-baseline="central">pas de changement topologique)</text>
+        <text class="th" x="500" y="278" text-anchor="middle" dominant-baseline="central">Parade « ne rien faire »</text>
+        <text class="ts" x="500" y="296" text-anchor="middle" dominant-baseline="central">ajoutée automatiquement : actions</text>
+        <text class="ts" x="500" y="310" text-anchor="middle" dominant-baseline="central">curatives seules, topologie inchangée</text>
     </g>
 
     <g class="fill-gray">
