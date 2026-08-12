@@ -1318,11 +1318,20 @@ précédente) — crée les contraintes par parade sans contrainte d'activation.
 incident dont les parades ont été activées plus tôt dans cette même micro-itération — crée les contraintes par
 parade avec contrainte d'activation. Cas C : contrainte en N ou N-k simple, ajout direct.
 
+Le cas A suit le parcours des parades de l'incident. Une parade qui déconnecte tous les ouvrages de l'élément
+surveillé ne peut pas être en contrainte sur cet élément : elle reçoit sa variable et sa contrainte
+d'activation, mais aucune coupe de transit. Les parades restantes passent par l'heuristique de pré-filtrage,
+qui écarte celles dont le transit après manœuvre resterait proche du transit avant. Deux contraintes
+optionnelles s'ajoutent au passage : une limitation du nombre d'actions curatives lorsque la parade en offre
+plus que le maximum configuré, et une valorisation de la poche perdue lorsque la parade en isole une contenant
+consommation ou production. Après la boucle viennent la contrainte de choix topologique — qui rend vraie
+l'affirmation « exactement une parade est activée » de la partie fonctionnelle — puis, sous ITAM, la contrainte
+sur le seuil avant curatif.
+
 Deux précisions de localisation, utiles pour naviguer dans le code : la variable entière d'activation d'une
-parade et le test d'équivalence entre contraintes de parades ne sont pas créés dans `ajoutContraintes` mais
-dans `ecrireCoupeTransit`, appelée en fin de chaîne. Et la contrainte de choix topologique, posée une fois par
-incident après le parcours de ses parades, est ce qui rend vraie l'affirmation « exactement une parade est
-activée » de la partie fonctionnelle.
+parade et le test d'équivalence entre contraintes de parades sont créés dans `ecrireCoupeTransit`, et les
+variables curatives de l'incident dans `coeffPourQuadInc` — donc en aval de `ajoutContraintes`, pas dans le
+corps du cas A.
 :::
 ::::
 
