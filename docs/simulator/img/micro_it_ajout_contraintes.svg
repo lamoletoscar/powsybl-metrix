@@ -40,8 +40,9 @@
         <text class="ts" x="340" y="96" text-anchor="middle" dominant-baseline="central">et micro-itération ≤ 5</text>
     </g>
     <line x1="510" y1="76" x2="570" y2="76" class="arr" marker-end="url(#a3)"/>
-    <text class="ts" x="576" y="70" text-anchor="start">Oui →</text>
-    <text class="ts" x="576" y="86" text-anchor="start">dédoublonnage</text>
+    <text class="ts" x="570" y="62" text-anchor="start">Oui → arbitrage :</text>
+    <text class="ts" x="570" y="78" text-anchor="start">priorité de type</text>
+    <text class="ts" x="570" y="94" text-anchor="start">+ quasi-redondance</text>
     <line x1="340" y1="106" x2="340" y2="130" class="arr" marker-end="url(#a3)"/>
 
     <rect class="dashed-zone" x="20" y="130" width="640" height="1090" rx="16"/>

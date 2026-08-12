@@ -1273,11 +1273,16 @@ le seuil avant-curatif (ITAM) doit être vérifié. Après la boucle interne, pa
 la connexité (poche récupérable via une parade), qu'aucune contrainte n'a été trouvée, et que les parades ne
 sont pas déjà activées, une contrainte fictive est ajoutée pour forcer l'entrée de l'incident dans le LP.
 
-Le tri final n'est pas cosmétique : c'est lui qui définit l'ordre de priorité exploité ensuite par
-l'heuristique de dédoublonnage. L'ordre de l'énumération des types place les contraintes d'émulation AC avant
-les contraintes N, elles-mêmes avant les N-k ; à type égal, la contrainte de plus grand écart passe en
-premier. Enfin, les deux boucles de détection sont bornées par la capacité du tableau `icdtQdt_` : au-delà, la
-détection s'arrête pour cette micro-itération et reprendra à la suivante.
+Le tri final n'est pas cosmétique : c'est lui qui établit l'ordre de priorité exploité ensuite par
+l'arbitrage de `ajoutContraintes`. Le type d'une contrainte dépend de la situation évaluée, N ou N-k, et de la
+présence d'une HVDC en émulation AC dans l'élément surveillé — cette dernière étant une propriété de l'élément,
+un même élément ne mélange jamais les deux familles. En pratique le tri revient donc, sur un élément donné, à
+placer sa contrainte N avant ses contraintes N-k, et à ordonner celles-ci par écart décroissant. Ce classement
+est ce qui permet ensuite à la contrainte N de primer, comme le fait déjà en amont le filtre « masquée par
+N ».
+
+Enfin, les deux boucles de détection sont bornées par la capacité du tableau `icdtQdt_` : au-delà, la détection
+s'arrête pour cette micro-itération et reprendra à la suivante.
 :::
 ::::
 
@@ -1326,7 +1331,7 @@ actions curatives si `NBMAXCUR` > 0 (=nb max d’actions curatives par incident)
 quand le problème ne contient encore aucune contrainte, le solveur n'est pas appelé : on utilise
 directement le résultat de l'empilement économique (phase hors-réseau).
 
-##### Dédoublonnage (`choixContraintesAajouter`)
+##### Arbitrage des contraintes à ajouter (`choixContraintesAajouter`)
 
 Cette heuristique ne s'exécute que si le nombre de contraintes détectées dépasse
 `nb_max_contraints_by_iteration`, en modes `OPF` ou `OPF_WITH_OVERLOAD`, et durant les micro-itérations 1 à 5.

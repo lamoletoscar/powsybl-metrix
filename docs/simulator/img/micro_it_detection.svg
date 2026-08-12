@@ -140,8 +140,9 @@
         <text class="ts" x="185" y="1034" text-anchor="middle" dominant-baseline="central">&amp;&amp; écart ≤ depassementEnN_</text>
     </g>
     <line x1="315" y1="1014" x2="370" y2="1014" class="arr" marker-end="url(#a2)"/>
-    <text class="ts" x="380" y="1008" text-anchor="start" style="fill: var(--diag-green)">Oui → redondante</text>
-    <text class="ts" x="380" y="1024" text-anchor="start" style="fill: var(--diag-green)">la N suffit</text>
+    <text class="ts" x="380" y="1000" text-anchor="start" style="fill: var(--diag-green)">Oui → redondante</text>
+    <text class="ts" x="380" y="1016" text-anchor="start" style="fill: var(--diag-green)">la N suffit (cas certain ;</text>
+    <text class="ts" x="380" y="1032" text-anchor="start" style="fill: var(--diag-green)">cas incertain arbitré à l'ajout)</text>
     <line x1="185" y1="1044" x2="185" y2="1068" class="arr" marker-end="url(#a2)"/>
 
     <g class="fill-coral">

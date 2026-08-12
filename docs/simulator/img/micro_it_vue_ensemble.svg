@@ -76,7 +76,7 @@
             Ajout des contraintes au LP
         </text>
         <text class="ts" x="340" y="466" text-anchor="middle" dominant-baseline="central">
-            Dédoublonnage (choixContraintesAajouter)
+            Arbitrage sous volume (choixContraintesAajouter)
         </text>
         <text class="ts" x="340" y="484" text-anchor="middle" dominant-baseline="central">
             ajoutContrainte → coefficients matrice
