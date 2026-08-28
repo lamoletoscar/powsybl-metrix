@@ -836,13 +836,12 @@ int Calculer::metrix2Assess(const std::shared_ptr<Variante>& var, const vector<d
             }
 
             if (elemSurv->isWatchedSection) {
-                // Somme ponderee identique a celle de Calculer::detectionContraintes
+                // Somme ponderee, calculee comme dans Calculer::detectionContraintes
                 transitN = 0.;
                 for (const auto& elem : elemSurv->quadsASurv_) {
                     const auto& quadSect = elem.first;
                     if (quadSect->connecte()) {
-                        transitN += elem.second * quadSect->u2Yij_
-                                    * (theta[quadSect->norqua_->num_] - theta[quadSect->nexqua_->num_]);
+                        transitN += elem.second * transitSurQuad(quadSect, nullptr, theta);
                     }
                 }
                 for (const auto& elem : elemSurv->hvdcASurv_) {
@@ -853,12 +852,19 @@ int Calculer::metrix2Assess(const std::shared_ptr<Variante>& var, const vector<d
                     }
                 }
 
-                // Le seuil d'une section ne s'applique que dans le sens porte par ses coefficients
+                // Ecart calcule comme dans Calculer::detectionContraintes : le seuil extremite -> origine
+                // d'une section reste a valdef (cf. Reseau::lireDonnees), donc le sens inverse aux
+                // coefficients n'est pas borne
+                double maxTSect = elemSurv->seuilMax(nullptr);
+                double minTSect = elemSurv->seuilMin(nullptr);
                 double ecartSect = 0.;
-                if (transitN > 0 && elemSurv->seuilMaxN_ != config::constants::valdef) {
-                    ecartSect = std::max(transitN - elemSurv->seuilMaxN_, 0.);
-                    sommeEcartsN += ecartSect;
+
+                if (transitN > 0 && maxTSect != config::constants::valdef) {
+                    ecartSect = std::max(transitN - maxTSect, 0.);
+                } else if (transitN < 0 && minTSect != -config::constants::valdef) {
+                    ecartSect = std::max(minTSect - transitN, 0.);
                 }
+                sommeEcartsN += ecartSect;
 
                 if (!config::inputConfiguration().useAllOutputs()) {
                     if (config::configuration().displayResultatsSurcharges() && ecartSect < EPSILON_SORTIES) {
