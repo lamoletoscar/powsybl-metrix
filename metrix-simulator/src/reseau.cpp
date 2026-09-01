@@ -687,8 +687,10 @@ void Reseau::lireDonnees()
     // un doublon rendrait la sortie ambigue et empecherait la section d'entrer dans
     // elementsASurveillerN_, donc d'etre detectee et contrainte
     std::unordered_set<string> nomsSurveilles;
-    for (const auto& elem : elementsASurveiller_) {
-        nomsSurveilles.insert(elem->nom_);
+    if (nbSectSurv_ > 0) {
+        for (const auto& elem : elementsASurveiller_) {
+            nomsSurveilles.insert(elem->nom_);
+        }
     }
 
     int cptTableDescr = 0; // iterateur sur les tables de description des sect. surv.
