@@ -714,9 +714,7 @@ void Reseau::lireDonnees()
         elemAS->seuilsAssymetriques_ = true;
 
         if (!nomsSurveilles.insert(elemAS->nom_).second) {
-            ostringstream errMsg;
-            errMsg << err::ioDico().msg("ERRNomSectionSurvDuplique", elemAS->nom_);
-            throw ErrorI(errMsg.str());
+            throw ErrorI(err::ioDico().msg("ERRNomSectionSurvDuplique", elemAS->nom_));
         }
 
         for (int j = 0; j < config.sectnbqdDIE()[i]; ++j) {
