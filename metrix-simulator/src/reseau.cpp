@@ -1598,6 +1598,16 @@ double TransformateurDephaseur::angle2Power(double angle) const
     return angle * config::constants::pi / 180.0 * quad_->u2Yij_;
 }
 
+void TransformateurDephaseur::setPuiCons(double puiCons)
+{
+    puiCons_ = puiCons;
+    if (type_ == PILOTAGE_ANGLE_IMPOSE || type_ == PILOTAGE_PUISSANCE_IMPOSE) {
+        // Le dephasage impose devient la nouvelle borne, cf. constructeur de TransformateurDephaseur
+        puiMin_ = puiCons_;
+        puiMax_ = puiCons_;
+    }
+}
+
 double TransformateurDephaseur::power2Angle(double power) const
 {
     return power / quad_->u2Yij_ * 180.0 / config::constants::pi;
@@ -1909,7 +1919,7 @@ int Reseau::modifReseau(const std::shared_ptr<Variante>& var)
             LOG_ALL(warning) << err::ioDico().msg("WARNTdHs", td->quadVrai_->nom_);
             continue;
         }
-        td->puiCons_ = elem.second;
+        td->setPuiCons(elem.second);
     }
 
     // XIV-Seuils des quadripoles
@@ -2273,7 +2283,7 @@ int Reseau::resetReseau(const std::shared_ptr<Variante>& var, bool toutesConsos)
         for (auto tdIt = var->dtValDep_.cbegin(); tdIt != var->dtValDep_.end(); ++tdIt) {
             // Reset dephasage
             const auto& td = tdIt->first;
-            td->puiCons_ = td->puiConsBase_;
+            td->setPuiCons(td->puiConsBase_);
 
             LOG(debug) << "le dephasage du TD : " << td->quadVrai_->nom_ << " est remis a jour a son etat de base";
         }
@@ -2673,13 +2683,7 @@ void Reseau::updateBase(const config::VariantConfiguration::VariantConfig& confi
             }
             if (!td->tapdepha_.empty() && (var_int >= td->lowtap_) && (var_int < td->lowtap_ + td->nbtap_)) {
                 td->puiConsBase_ = td->angle2Power(td->tapdepha_[var_int - td->lowtap_]);
-                td->puiCons_ = td->puiConsBase_;
-                if (td->type_ == TransformateurDephaseur::PILOTAGE_ANGLE_IMPOSE
-                    || td->type_ == TransformateurDephaseur::PILOTAGE_PUISSANCE_IMPOSE) {
-                    // Le dephasage impose devient la nouvelle borne, cf. constructeur de TransformateurDephaseur
-                    td->puiMin_ = td->puiCons_;
-                    td->puiMax_ = td->puiCons_;
-                }
+                td->setPuiCons(td->puiConsBase_);
             } else {
                 LOG_ALL(warning) << err::ioDico().msg(
                     "ERRTDPriseIntrouvable", str, c_fmt("%d", var_int), c_fmt("%d", config.num));
