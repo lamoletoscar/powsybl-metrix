@@ -836,21 +836,7 @@ int Calculer::metrix2Assess(const std::shared_ptr<Variante>& var, const vector<d
             }
 
             if (elemSurv->isWatchedSection) {
-                // Somme ponderee, calculee comme dans Calculer::detectionContraintes
-                transitN = 0.;
-                for (const auto& elem : elemSurv->quadsASurv_) {
-                    const auto& quadSect = elem.first;
-                    if (quadSect->connecte()) {
-                        transitN += elem.second * transitSurQuad(quadSect, nullptr, theta);
-                    }
-                }
-                for (const auto& elem : elemSurv->hvdcASurv_) {
-                    const auto& lccSect = elem.first;
-                    if (lccSect->connecte()) {
-                        transitN += elem.second
-                                    * (lccSect->puiCons_ + pbX_[lccSect->numVar_] - pbX_[lccSect->numVar_ + 1]);
-                    }
-                }
+                transitN = transitSurSection(elemSurv, theta);
 
                 // Ecart calcule comme dans Calculer::detectionContraintes : le seuil extremite -> origine
                 // d'une section reste a valdef (cf. Reseau::lireDonnees), donc seuilMin(nullptr) vaut
@@ -863,15 +849,7 @@ int Calculer::metrix2Assess(const std::shared_ptr<Variante>& var, const vector<d
                 }
                 sommeEcartsN += ecartSect;
 
-                if (!config::inputConfiguration().useAllOutputs()) {
-                    if (config::configuration().displayResultatsSurcharges() && ecartSect < EPSILON_SORTIES) {
-                        continue;
-                    }
-                    if (fabs(transitN) < EPSILON_SORTIES) {
-                        transitN = 0.0;
-                    }
-                    fprintf(fr, ("R3 ;;%s;" + PREC_FLOAT + ";\n").c_str(), elemSurv->nom_.c_str(), transitN);
-                } else {
+                if (config::inputConfiguration().useAllOutputs()) {
                     fprintf(fr,
                             "R3 ;;%s;%.1f;%.1f;%.1f;%.1f;\n",
                             elemSurv->nom_.c_str(),
@@ -879,6 +857,12 @@ int Calculer::metrix2Assess(const std::shared_ptr<Variante>& var, const vector<d
                             elemSurv->seuilMaxN_,
                             elemSurv->seuilMaxInc_,
                             elemSurv->seuilMaxAvantCur_);
+                } else if (!config::configuration().displayResultatsSurcharges() || ecartSect >= EPSILON_SORTIES) {
+                    double transitAffiche = (fabs(transitN) < EPSILON_SORTIES) ? 0.0 : transitN;
+                    fprintf(fr,
+                            "R3 ;;%s;%s;\n",
+                            elemSurv->nom_.c_str(),
+                            c_fmt(PREC_FLOAT.c_str(), transitAffiche).c_str());
                 }
             } else if (elemSurv->quadsASurv_.size() == 1 && elemSurv->hvdcASurv_.empty()) {
                 const auto& quad = elemSurv->quadsASurv_.begin()->first;
