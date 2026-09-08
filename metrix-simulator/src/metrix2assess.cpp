@@ -853,16 +853,13 @@ int Calculer::metrix2Assess(const std::shared_ptr<Variante>& var, const vector<d
                 }
 
                 // Ecart calcule comme dans Calculer::detectionContraintes : le seuil extremite -> origine
-                // d'une section reste a valdef (cf. Reseau::lireDonnees), donc le sens inverse aux
-                // coefficients n'est pas borne
+                // d'une section reste a valdef (cf. Reseau::lireDonnees), donc seuilMin(nullptr) vaut
+                // -valdef et le sens inverse aux coefficients n'est pas borne
                 double maxTSect = elemSurv->seuilMax(nullptr);
-                double minTSect = elemSurv->seuilMin(nullptr);
                 double ecartSect = 0.;
 
                 if (transitN > 0 && maxTSect != config::constants::valdef) {
                     ecartSect = std::max(transitN - maxTSect, 0.);
-                } else if (transitN < 0 && minTSect != -config::constants::valdef) {
-                    ecartSect = std::max(minTSect - transitN, 0.);
                 }
                 sommeEcartsN += ecartSect;
 
