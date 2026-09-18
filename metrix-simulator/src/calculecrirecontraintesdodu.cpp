@@ -4287,17 +4287,15 @@ int Calculer::fixerProdSansReseau()
             if (grpe->prodAjust_ == Groupe::OUI_HR_AR || grpe->prodAjust_ == Groupe::OUI_AR) {
                 const auto& config = config::configuration();
                 pbX_[numVar] = 0.0;
-                pbCoutLineaire_[numVar] = (config.computationType()
-                                           == config::Configuration::ComputationType::OPF_WITHOUT_REDISPATCH)
-                                              ? 0.
-                                              : std::max(grpe->coutHausseAR_ + config.redispatchCostOffset(),
-                                                         config.noiseCost());
+                pbCoutLineaire_[numVar]
+                    = (config.computationType() == config::Configuration::ComputationType::OPF_WITHOUT_REDISPATCH)
+                          ? 0.
+                          : std::max(grpe->coutHausseAR_ + config.redispatchCostOffset(), config.noiseCost());
                 pbX_[numVar + 1] = 0.0;
-                pbCoutLineaire_[numVar + 1] = (config.computationType()
-                                               == config::Configuration::ComputationType::OPF_WITHOUT_REDISPATCH)
-                                                  ? 0.
-                                                  : std::max(grpe->coutBaisseAR_ + config.redispatchCostOffset(),
-                                                             config.noiseCost());
+                pbCoutLineaire_[numVar + 1]
+                    = (config.computationType() == config::Configuration::ComputationType::OPF_WITHOUT_REDISPATCH)
+                          ? 0.
+                          : std::max(grpe->coutBaisseAR_ + config.redispatchCostOffset(), config.noiseCost());
                 pbXmin_[numVar] = 0.0;
                 pbXmax_[numVar] = (config.computationType()
                                    == config::Configuration::ComputationType::OPF_WITHOUT_REDISPATCH)
