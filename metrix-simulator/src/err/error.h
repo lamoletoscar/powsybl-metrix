@@ -21,20 +21,20 @@ namespace err
 /**
  * @brief Main exception of metrix
  *
- * This class carries the filepath and line number in which it was thrown through the use of the @a ErrorI macro
+ * This class carries the filepath and line number in which it was thrown through the use of the @a ErrorI macro.
+ * The location is kept apart from the message so that it only reaches the developer log.
  */
 class Error : public std::exception
 {
 public:
-    explicit Error(const std::string& msg, const std::string& file, int line) noexcept;
+    explicit Error(const std::string& msg, const std::string& file, int line);
 
     const char* what() const noexcept final { return msg_.c_str(); }
-
-private:
-    void formatMsg(const std::string& msg, const std::string& file, int line);
+    const std::string& location() const noexcept { return location_; }
 
 private:
     std::string msg_;
+    std::string location_;
 };
 
 } // namespace err

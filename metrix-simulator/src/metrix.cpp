@@ -74,19 +74,18 @@ int main(int argc, char* argv[])
         err::IoDico::configure(dicoPath);
         err::ioDico().add("METRIX");
 
-        const auto& config = config::configuration();
-
         // input configuration must be updated after dico is initialized
         options.update_configuration();
 
         const auto& input_config = config::inputConfiguration();
 
-        // configure metrix log
-        // other than critical level logs are forbidden before this point, because the logger is not configured yet
-
+        // The logger outputs are fixed at its first use: set them before reading fort.json, which may log errors.
+        // The log level is read at each log, so it can still come from fort.json.
         metrix::log::Logger::config.resultFilepath = input_config.filepathError();
         metrix::log::Logger::config.printLog = input_config.printLog();
         metrix::log::Logger::config.verboses = input_config.verboses();
+
+        const auto& config = config::configuration();
 
         if (config.logLevel()) {
             metrix::log::Logger::config.loggerLevel = *config.logLevel();
@@ -198,6 +197,7 @@ int main(int argc, char* argv[])
             }
         } catch (const err::Error& e) {
             LOG_ALL(error) << "Not recoverable error: " << e.what();
+            LOG(error) << "Thrown at " << e.location();
             // exceptions during computation are considered normal behaviour for the code (TNR)
         }
 
@@ -209,6 +209,9 @@ int main(int argc, char* argv[])
         std::cerr << e.what(); // add to cerr also because print on stdout is disabled by default and exception can
                                // occurs before logger initialization
         LOG_ALL(critical) << e.what() << metrix::log::sync;
+        if (const auto* error = dynamic_cast<const err::Error*>(&e)) {
+            LOG(critical) << "Thrown at " << error->location() << metrix::log::sync;
+        }
         return METRIX_PAS_SOLUTION;
     } catch (...) {
         std::cerr << "Unknown error"; // add to cerr also because print on stdout is disabled by default and error can
